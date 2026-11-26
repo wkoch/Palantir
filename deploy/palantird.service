@@ -1,0 +1,15 @@
+[Unit]
+Description=Palantír (daemon)
+Documentation=https://github.com/wkoch/Palantir
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/opt/palantir/atual/palantird servir
+Restart=always
+RestartSec=2
+UMask=0077
+# O Podman rootless precisa de newuidmap, por isso não há NoNewPrivileges aqui.
+# O isolamento das ferramentas é feito nos contêineres.
+
+[Install]
+WantedBy=default.target

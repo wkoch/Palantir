@@ -1,0 +1,12 @@
+# Imagem das ferramentas MCP. Roda sempre sem rede, em Podman rootless.
+# O contexto da construção precisa conter o binário palantir-tool.
+FROM docker.io/library/debian:trixie-slim
+
+RUN apt-get update \
+ && apt-get install --yes --no-install-recommends \
+      ca-certificates poppler-utils tesseract-ocr tesseract-ocr-por tesseract-ocr-eng \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY palantir-tool /usr/local/bin/palantir-tool
+
+LABEL org.opencontainers.image.source="https://github.com/wkoch/Palantir"

@@ -1,0 +1,172 @@
+#!/bin/bash
+# Gerencia as versões instaladas do Palantír. Cada versão fica numa pasta
+# própria, e um link aponta para a ativa: voltar é trocar o link.
+set -euo pipefail
+
+RAIZ="${PALANTIR_RAIZ:-/opt/palantir}"
+REPOSITORIO="${PALANTIR_REPOSITORIO:-wkoch/Palantir}"
+CONF="${PALANTIR_CONF:-/etc/palantir}"
+
+uso() {
+	cat <<'FIM'
+uso: sudo palantir-versao <comando>
+
+  listar                    mostra as versões instaladas
+  instalar ARQUIVO|VERSÃO   instala de um pacote local ou de uma release (ex.: v0.1.0)
+  atualizar                 instala e ativa a release mais recente
+  ativar VERSÃO             passa a usar uma versão instalada
+  voltar                    ativa a versão usada antes da atual
+FIM
+}
+
+erro() {
+	echo "palantir-versao: $*" >&2
+	exit 1
+}
+
+precisa_de_root() {
+	[ "$(id -u)" -eq 0 ] || [ -n "${PALANTIR_SEM_ROOT:-}" ] || erro "execute com sudo"
+}
+
+versao_de() {
+	[ -L "$RAIZ/$1" ] && basename "$(readlink -f "$RAIZ/$1")" || true
+}
+
+validar_versao() {
+	[[ "$1" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || erro "versão inválida: '$1'"
+}
+
+listar() {
+	local atual anterior v
+	atual="$(versao_de atual)"
+	anterior="$(versao_de anterior)"
+	[ -d "$RAIZ/versoes" ] || return 0
+	for v in $(ls "$RAIZ/versoes" | sort -V); do
+		if [ "$v" = "$atual" ]; then
+			echo "$v (ativa)"
+		elif [ "$v" = "$anterior" ]; then
+			echo "$v (anterior)"
+		else
+			echo "$v"
+		fi
+	done
+}
+
+mais_recente() {
+	curl --fail --silent --show-error --location \
+		"https://api.github.com/repos/$REPOSITORIO/releases/latest" |
+		sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1
+}
+
+# baixar VERSÃO PASTA: obtém o pacote da release e confere a soma.
+baixar() {
+	local versao="$1" pasta="$2" nome base
+	validar_versao "$versao"
+	nome="palantir-$versao-linux-amd64.tar.gz"
+	base="https://github.com/$REPOSITORIO/releases/download/$versao"
+	echo "Baixando $nome…" >&2
+	curl --fail --silent --show-error --location --output "$pasta/$nome" "$base/$nome"
+	curl --fail --silent --show-error --location --output "$pasta/SHA256SUMS" "$base/SHA256SUMS"
+	(cd "$pasta" && grep " $nome\$" SHA256SUMS | sha256sum --check --quiet) || erro "a soma de $nome não confere"
+	echo "$pasta/$nome"
+}
+
+instalar() {
+	precisa_de_root
+	local origem="$1" temporaria pacote versao destino
+	temporaria="$(mktemp -d)"
+	trap 'rm -rf "$temporaria"' RETURN
+	if [ -f "$origem" ]; then
+		pacote="$origem"
+	else
+		pacote="$(baixar "$origem" "$temporaria")"
+	fi
+	mkdir "$temporaria/conteudo"
+	tar --extract --gzip --file "$pacote" --directory "$temporaria/conteudo" --strip-components=1 --no-same-owner
+	[ -f "$temporaria/conteudo/VERSAO" ] || erro "o pacote não tem o arquivo VERSAO"
+	versao="$(cat "$temporaria/conteudo/VERSAO")"
+	validar_versao "$versao"
+	[ -x "$temporaria/conteudo/palantird" ] || erro "o pacote não tem o palantird"
+	destino="$RAIZ/versoes/$versao"
+	[ "$versao" != "$(versao_de atual)" ] || erro "$versao é a versão ativa; ative outra antes de reinstalar"
+	mkdir -p "$RAIZ/versoes"
+	rm -rf "$destino"
+	mv "$temporaria/conteudo" "$destino"
+	chmod -R u=rwX,go=rX "$destino"
+	echo "$versao instalada em $destino"
+}
+
+# como_usuario executa um comando no gerenciador de serviços do usuário.
+como_usuario() {
+	local usuario uid
+	usuario="$(cat "$CONF/usuario")"
+	uid="$(id -u "$usuario")"
+	runuser -u "$usuario" -- env -C / HOME="$(getent passwd "$usuario" | cut -d: -f6)" \
+		XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
+}
+
+# A imagem das ferramentas acompanha a versão do daemon.
+preparar_imagem() {
+	local versao="$1" pasta="$RAIZ/versoes/$1"
+	[ -n "${PALANTIR_SEM_SERVICOS:-}" ] && return 0
+	if ! como_usuario podman image exists "localhost/palantir-ferramentas:$versao"; then
+		echo "Construindo a imagem das ferramentas (precisa de rede)…"
+		como_usuario podman build --pull=newer --tag "localhost/palantir-ferramentas:$versao" \
+			--file "$pasta/Containerfile" "$pasta"
+	fi
+	como_usuario podman tag "localhost/palantir-ferramentas:$versao" localhost/palantir-ferramentas:atual
+}
+
+ativar() {
+	precisa_de_root
+	local versao="$1" atual
+	validar_versao "$versao"
+	[ -x "$RAIZ/versoes/$versao/palantird" ] || erro "$versao não está instalada"
+	atual="$(versao_de atual)"
+	preparar_imagem "$versao"
+	if [ -n "$atual" ] && [ "$atual" != "$versao" ]; then
+		ln -sfn "versoes/$atual" "$RAIZ/anterior"
+	fi
+	# A troca do link é atômica.
+	ln -sfn "versoes/$versao" "$RAIZ/atual.novo"
+	mv -T "$RAIZ/atual.novo" "$RAIZ/atual"
+	echo "$versao ativada"
+	[ -n "${PALANTIR_SEM_SERVICOS:-}" ] && return 0
+	como_usuario systemctl --user daemon-reload
+	como_usuario systemctl --user restart palantird.service
+	systemctl try-restart palantir-sessao.service
+}
+
+case "${1:-}" in
+listar) listar ;;
+instalar)
+	[ $# -eq 2 ] || erro "informe o pacote ou a versão"
+	instalar "$2"
+	;;
+atualizar)
+	precisa_de_root
+	nova="$(mais_recente)"
+	[ -n "$nova" ] || erro "nenhuma release encontrada"
+	if [ "$nova" = "$(versao_de atual)" ]; then
+		echo "Já está na versão mais recente ($nova)."
+		exit 0
+	fi
+	instalar "$nova"
+	ativar "$nova"
+	;;
+ativar)
+	[ $# -eq 2 ] || erro "informe a versão"
+	ativar "$2"
+	;;
+voltar)
+	anterior="$(versao_de anterior)"
+	[ -n "$anterior" ] || erro "não há versão anterior"
+	ativar "$anterior"
+	echo "Se o banco tiver sido migrado pela versão nova, restaure a cópia indicada no log do daemon."
+	;;
+"" | ajuda | -h | --help) uso ;;
+*)
+	uso >&2
+	exit 2
+	;;
+esac

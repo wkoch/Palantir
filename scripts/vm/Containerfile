@@ -1,0 +1,6 @@
+# Ambiente para testar a instalação numa máquina virtual (scripts/testar-vm.sh).
+FROM docker.io/library/debian:trixie-slim
+RUN apt-get update \
+ && apt-get install --yes --no-install-recommends \
+      qemu-system-x86 qemu-system-gui qemu-utils ovmf xorriso openssh-client socat curl ca-certificates python3 \
+ && rm -rf /var/lib/apt/lists/*
