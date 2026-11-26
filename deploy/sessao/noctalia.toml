@@ -1,0 +1,17 @@
+# Padrão do Palantír para o Noctalia. É seu: ajuste à vontade, também pela tela
+# de configurações do Noctalia (Super+vírgula).
+
+[theme]
+mode = "dark"
+
+[shell]
+# Pede a senha quando um programa precisa de privilégios.
+polkit_agent = true
+# O assistente de primeiro uso cobriria o Palantír. As mesmas opções estão nas
+# configurações (Super+vírgula).
+setup_wizard_enabled = false
+
+[lockscreen]
+enabled = true
+# Fechar a tampa suspende o computador, que volta nesta tela de bloqueio.
+lock_before_suspend = true

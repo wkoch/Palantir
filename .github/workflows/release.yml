@@ -36,6 +36,5 @@ jobs:
           # As notas vêm da seção da versão no CHANGELOG.
           awk -v v="$GITHUB_REF_NAME" '$1=="##" {p = ($2==v)} p && $1!="##"' CHANGELOG.md > saida/notas.md
           test -s saida/notas.md || { echo "CHANGELOG.md sem a seção $GITHUB_REF_NAME" >&2; exit 1; }
-          cp deploy/pos-instalacao.sh deploy/palantir-versao saida/
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "Palantír $GITHUB_REF_NAME" \
-            --notes-file saida/notas.md saida/*.tar.gz saida/SHA256SUMS saida/pos-instalacao.sh saida/palantir-versao
+            --notes-file saida/notas.md saida/*.tar.gz saida/SHA256SUMS

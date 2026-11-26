@@ -1,0 +1,27 @@
+# SearXNG do Palantír: a pesquisa da IA, acessível só por esta máquina.
+[Unit]
+Description=Palantír (mecanismo de busca)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=palantir-busca
+# Imagem oficial, fixada pela soma (2026-11-23).
+Image=docker.io/searxng/searxng@sha256:a7fc607aa6723f5a8982105bcc5ffba4d1b9fc7c6922a31a88d6e4cba49ef12a
+User=977
+Group=977
+PublishPort=127.0.0.1:8888:8080
+Volume=/etc/palantir/busca-settings.yml:/etc/searxng/settings.yml:ro
+ReadOnly=true
+Tmpfs=/tmp
+Tmpfs=/var/cache/searxng:mode=1777
+DropCapability=all
+NoNewPrivileges=true
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

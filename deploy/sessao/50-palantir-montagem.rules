@@ -1,0 +1,8 @@
+// A cópia para um pendrive é pedida pelo Palantír, que roda como serviço do
+// usuário, fora da sessão gráfica. Quem está em plugdev pode montar discos que
+// não são do sistema sem digitar a senha.
+polkit.addRule(function (action, subject) {
+    if (action.id == "org.freedesktop.udisks2.filesystem-mount" && subject.isInGroup("plugdev")) {
+        return polkit.Result.YES;
+    }
+});

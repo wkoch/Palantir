@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/url"
 	"os"
+	"syscall"
 
 	_ "modernc.org/sqlite" // driver "sqlite", sem CGO
 )
@@ -22,7 +23,26 @@ func Abrir(ctx context.Context, caminho string) (*sql.DB, error) {
 	return abrir(ctx, caminho, migracoes)
 }
 
+// travar impede que dois processos criem ou migrem o banco ao mesmo tempo: o
+// daemon e um comando podem abri-lo no mesmo instante, como na instalação.
+func travar(caminho string) (func(), error) {
+	f, err := os.OpenFile(caminho+".trava", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		f.Close()
+		return nil, fmt.Errorf("travar o banco: %w", err)
+	}
+	return func() { f.Close() }, nil
+}
+
 func abrir(ctx context.Context, caminho string, passos []string) (*sql.DB, error) {
+	destravar, err := travar(caminho)
+	if err != nil {
+		return nil, err
+	}
+	defer destravar()
 	_, errStat := os.Stat(caminho)
 	existia := !errors.Is(errStat, fs.ErrNotExist)
 

@@ -4,19 +4,19 @@ Cada fase só é considerada concluída depois de demonstrada no HP ProBook x360
 
 ## P0: sessão e esqueleto
 
-**Entrega:** o HP liga direto no Palantír.
+**Entrega:** ao entrar no HP, o Palantír está aberto.
 
-- Script de pós-instalação para Debian 13 com Cage, Chromium, Podman e NetworkManager.
-- Login automático no tty1 e console de emergência no tty2.
+- Script de pós-instalação para Debian 13 com a sessão Noctalia (Umbriel), Chromium, Podman e NetworkManager.
+- Login com usuário e senha, e tela de bloqueio ao voltar da suspensão.
 - `palantird` com atividades persistentes, fila de atenção, roteador OpenRouter e diário.
 - Atividade de conversa com troca entre atividades e custo visível.
 
 **Critérios:**
 
-- Depois da senha do LUKS, a fila de atenção aparece sem outra interação.
+- Depois da senha do disco e do login, a fila de atenção aparece sem outra interação.
 - Uma atividade iniciada continua rodando enquanto outra está em uso.
 - Reiniciar o notebook preserva o estado das atividades.
-- Se o Chromium for encerrado, a sessão volta sozinha.
+- Fechar a tampa leva à tela de bloqueio, e a senha devolve a sessão.
 
 ## P1: acervo
 
@@ -76,10 +76,10 @@ Atualizada em 26 de novembro de 2026. Um critério só é marcado como cumprido 
 
 | Fase | Critério | Implementado e testado | VM Debian 13 | HP |
 | --- | --- | --- | --- | --- |
-| P0 | A fila aparece depois do boot, sem outra interação | sim | sim (sem LUKS) | pendente |
+| P0 | A fila aparece depois do boot e do login | sim | sim (sem LUKS) | pendente |
 | P0 | Uma atividade continua enquanto outra está em uso | sim | | pendente |
 | P0 | Reiniciar preserva o estado | sim | sim | pendente |
-| P0 | A sessão volta quando o Chromium é encerrado | sim | sim | pendente |
+| P0 | Bloqueio ao voltar e retorno com a senha | sim | sim: volta bloqueada; a senha foi provada num bloqueio comum | pendente |
 | P1 | Importar a pasta de documentos e responder citando originais | sim, modelo simulado | parcial (importação e busca) | pendente |
 | P1 | Nenhum original muda de hash ao regenerar | sim | | pendente |
 | P2 | Relatório em segundo plano que avisa quando fica pronto | sim, modelo simulado | | pendente |

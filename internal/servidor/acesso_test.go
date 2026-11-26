@@ -92,3 +92,30 @@ func TestSemChaveNaoHaDados(t *testing.T) {
 		t.Error("o servidor devolveu o subprotocolo com a chave:", got)
 	}
 }
+
+func TestSoANavegacaoAteAPaginaVemDeFora(t *testing.T) {
+	c := montar(t)
+	navegar := func(sitio, modo, destino string) []string {
+		return []string{"Sec-Fetch-Site", sitio, "Sec-Fetch-Mode", modo, "Sec-Fetch-Dest", destino}
+	}
+	for _, x := range []struct {
+		metodo, rota string
+		cab          []string
+		quer         int
+	}{
+		// O atalho do sistema chega de um arquivo local.
+		{"GET", "/", navegar("cross-site", "navigate", "document"), 200},
+		{"GET", "/", navegar("same-site", "navigate", "document"), 200},
+		// Molduras, scripts, a API e envios continuam recusados.
+		{"GET", "/", navegar("cross-site", "navigate", "iframe"), 403},
+		{"GET", "/main.js", navegar("cross-site", "no-cors", "script"), 403},
+		{"GET", "/api/saude", navegar("cross-site", "navigate", "document"), 403},
+		{"GET", "/api/estado", navegar("same-site", "navigate", "document"), 403},
+		{"POST", "/", navegar("cross-site", "navigate", "document"), 403},
+		{"GET", "/", []string{"Sec-Fetch-Site", "cross-site"}, 403},
+	} {
+		if res, b := c.pedir(x.metodo, x.rota, "", x.cab...); res.StatusCode != x.quer {
+			t.Error(x, res.StatusCode, string(b))
+		}
+	}
+}

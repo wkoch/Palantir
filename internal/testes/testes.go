@@ -30,6 +30,10 @@ import (
 	"github.com/wkoch/Palantir/internal/simulador"
 )
 
+// BarramentoOriginal é o D-Bus de quem roda os testes, para o que precisa dele,
+// como o Podman.
+var BarramentoOriginal = os.Getenv("DBUS_SESSION_BUS_ADDRESS")
+
 // Nenhum teste alcança o keyring de quem os roda, mesmo que uma configuração de
 // teste deixe de escolher o armazenamento em arquivo.
 func init() {

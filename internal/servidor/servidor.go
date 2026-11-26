@@ -205,7 +205,7 @@ func (s *Servidor) proteger(proximo http.Handler) http.Handler {
 			recusar("origem não permitida")
 			return
 		}
-		if sitio := r.Header.Get("Sec-Fetch-Site"); sitio == "cross-site" || sitio == "same-site" {
+		if sitio := r.Header.Get("Sec-Fetch-Site"); (sitio == "cross-site" || sitio == "same-site") && !abrindoAInterface(r) {
 			recusar("requisição de outro site")
 			return
 		}
@@ -220,6 +220,15 @@ func (s *Servidor) proteger(proximo http.Handler) http.Handler {
 		}
 		proximo.ServeHTTP(w, r)
 	})
+}
+
+// abrindoAInterface informa se o navegador está só indo até a página, numa aba.
+// É o que faz o atalho do sistema, que redireciona a partir de um arquivo, e
+// não revela nada: a interface é pública, os dados exigem a chave e a política
+// de conteúdo impede que outro site a ponha numa moldura.
+func abrindoAInterface(r *http.Request) bool {
+	return r.Method == http.MethodGet && !strings.HasPrefix(r.URL.Path, "/api") &&
+		r.Header.Get("Sec-Fetch-Mode") == "navigate" && r.Header.Get("Sec-Fetch-Dest") == "document"
 }
 
 func (s *Servidor) arquivos() http.Handler {

@@ -19,10 +19,11 @@ Go (a versão do `go.mod`), Node 24 ou mais novo, `poppler-utils`, Podman para o
 | `internal/modelos`, `orcamento`, `diario`, `segredos` | Roteador, custo, auditoria e chaves |
 | `internal/acervo`, `extrator` | Originais, derivados, busca e extração |
 | `internal/conversa`, `relatorio`, `email`, `estudo` | As atividades |
+| `internal/discos`, `copia` | Destinos, cópia de segurança e restauração |
 | `internal/servidor`, `telas`, `ui` | API, esquemas das telas e interface embutida |
-| `internal/testes`, `injecao` | Montagem para testes e suíte de injeção |
+| `internal/testes`, `injecao`, `real` | Montagem para testes, suíte de injeção e prova com modelos reais |
 | `web` | Interface em Lit e TypeScript e os testes Playwright |
-| `deploy` | Units, políticas, scripts e imagem usados no HP |
+| `deploy` | Pós-instalação, sessão, busca, units e imagem usados no HP |
 
 Nomes de domínio são em português, como na documentação.
 
@@ -54,7 +55,9 @@ Constrói a imagem e confere, com o Podman real, a extração, o OCR, o contêin
 scripts/testar-vm.sh
 ```
 
-Instala o pacote num Debian 13 virtual (baixa a imagem de nuvem oficial para `~/.cache/palantir-vm`), reinicia e confere o kiosk, o teclado, o leitor de PDF, a queda do Chromium, o tty2, a troca de versões e a persistência. As capturas ficam em `saida/vm/`. A VM usa `WLR_RENDERER=pixman`, porque a placa virtual atrasa um quadro com OpenGL.
+Instala o pacote num Debian 13 virtual (baixa a imagem de nuvem oficial para `~/.cache/palantir-vm` e, dentro da máquina, os pacotes do Debian, do Noctalia e a imagem do SearXNG), entra pela tela de login digitando a senha e confere a sessão, o keyring, o bloqueio, a busca, a cópia para um pendrive virtual, um segundo usuário, a troca de versões e a persistência. As capturas ficam em `saida/vm/`. A conta e a senha da máquina existem só nela. `PARAR_APOS_BOOT=1` deixa a máquina ligada na tela de login para depuração, e `MANTER_SE_FALHAR=1`, depois de uma falha. A placa de vídeo virtual não se recupera da suspensão, então ela é o último passo e só confere que a sessão volta bloqueada; o desbloqueio com senha é testado num bloqueio comum.
+
+Os testes não tocam o keyring nem os discos de quem os roda: o barramento D-Bus é apagado do ambiente e o `lsblk` é substituído por um de mentira.
 
 ## Ao mudar partes sensíveis
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Carrega, no armazenamento do usuário, a imagem das ferramentas da versão ativa.
+set -eu
+PASTA="$(dirname "$(readlink -f "$0")")"
+VERSAO="$(cat "$PASTA/VERSAO")"
+IMAGEM="localhost/palantir-ferramentas:$VERSAO"
+if ! podman image exists "$IMAGEM"; then
+	podman load --input "$PASTA/imagem.tar" >/dev/null
+fi
+podman tag "$IMAGEM" localhost/palantir-ferramentas:atual

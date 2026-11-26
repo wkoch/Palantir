@@ -5,7 +5,6 @@ set -euo pipefail
 
 RAIZ="${PALANTIR_RAIZ:-/opt/palantir}"
 REPOSITORIO="${PALANTIR_REPOSITORIO:-wkoch/Palantir}"
-CONF="${PALANTIR_CONF:-/etc/palantir}"
 
 uso() {
 	cat <<'FIM'
@@ -96,25 +95,35 @@ instalar() {
 	echo "$versao instalada em $destino"
 }
 
-# como_usuario executa um comando no gerenciador de serviços do usuário.
-como_usuario() {
-	local usuario uid
-	usuario="$(cat "$CONF/usuario")"
-	uid="$(id -u "$usuario")"
-	runuser -u "$usuario" -- env -C / HOME="$(getent passwd "$usuario" | cut -d: -f6)" \
-		XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" "$@"
-}
-
-# A imagem das ferramentas acompanha a versão do daemon.
+# A imagem das ferramentas acompanha a versão do daemon. É construída uma vez
+# e guardada num arquivo, que cada usuário carrega no próprio Podman.
 preparar_imagem() {
 	local versao="$1" pasta="$RAIZ/versoes/$1"
 	[ -n "${PALANTIR_SEM_SERVICOS:-}" ] && return 0
-	if ! como_usuario podman image exists "localhost/palantir-ferramentas:$versao"; then
-		echo "Construindo a imagem das ferramentas (precisa de rede)…"
-		como_usuario podman build --pull=newer --tag "localhost/palantir-ferramentas:$versao" \
-			--file "$pasta/Containerfile" "$pasta"
-	fi
-	como_usuario podman tag "localhost/palantir-ferramentas:$versao" localhost/palantir-ferramentas:atual
+	[ -f "$pasta/imagem.tar" ] && return 0
+	echo "Construindo a imagem das ferramentas (precisa de rede)…"
+	podman build --pull=newer --tag "localhost/palantir-ferramentas:$versao" --file "$pasta/Containerfile" "$pasta"
+	rm -f "$pasta/imagem.tar.parcial"
+	podman save --format oci-archive --output "$pasta/imagem.tar.parcial" "localhost/palantir-ferramentas:$versao"
+	chmod 644 "$pasta/imagem.tar.parcial"
+	mv "$pasta/imagem.tar.parcial" "$pasta/imagem.tar"
+}
+
+# Reinicia o daemon de quem está com uma sessão aberta. Os demais pegam a versão
+# nova no próximo login.
+reiniciar_daemons() {
+	local socket uid usuario
+	for socket in /run/user/*/bus; do
+		[ -S "$socket" ] || continue
+		uid="${socket#/run/user/}"
+		uid="${uid%/bus}"
+		[ "$uid" -ge 1000 ] || continue
+		usuario="$(id -nu "$uid")" || continue
+		runuser -u "$usuario" -- env -C / XDG_RUNTIME_DIR="/run/user/$uid" \
+			DBUS_SESSION_BUS_ADDRESS="unix:path=$socket" \
+			sh -c 'systemctl --user daemon-reload && systemctl --user try-restart palantird.service' ||
+			echo "AVISO: o daemon de $usuario não reiniciou; ele pega a versão no próximo login."
+	done
 }
 
 ativar() {
@@ -132,9 +141,8 @@ ativar() {
 	mv -T "$RAIZ/atual.novo" "$RAIZ/atual"
 	echo "$versao ativada"
 	[ -n "${PALANTIR_SEM_SERVICOS:-}" ] && return 0
-	como_usuario systemctl --user daemon-reload
-	como_usuario systemctl --user restart palantird.service
-	systemctl try-restart palantir-sessao.service
+	install -m 644 "$RAIZ/versoes/$versao/palantird.service" /etc/systemd/user/palantird.service
+	reiniciar_daemons
 }
 
 case "${1:-}" in

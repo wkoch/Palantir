@@ -3,10 +3,13 @@
 ## Visão geral
 
 ```
-tty1: unit da sessão ─► Cage ─► Chromium (kiosk) ─► http://127.0.0.1:7700 (interface)
+greetd + Noctalia Greeter ─► sessão do usuário: Umbriel + Noctalia
+                                 │ ao entrar: "palantird abrir"
+                                 ▼
+                              Chromium ─► http://127.0.0.1:77xx (interface, com a chave do usuário)
                                                          │ WebSocket
 ┌────────────────────────────────────────────────────────┴───────────────┐
-│ palantird (Go, serviço de usuário)                                      │
+│ palantird (Go, um serviço por usuário)                                  │
 │  atividades · loop do agente · roteador OpenRouter                     │
 │  permissões · confirmações · orçamento · diário de auditoria           │
 │  proxy de saída (lista de hosts por ferramenta)                        │
@@ -16,7 +19,7 @@ tty1: unit da sessão ─► Cage ─► Chromium (kiosk) ─► http://127.0.0.
 │ SQLite FTS5    │ JSON + componen-  │ o proxy e para os dados da         │
 │ + vetores      │ tes web)          │ ferramenta (IMAP, web, PDF)        │
 └────────────────┴───────────────────┴────────────────────────────────────┘
-tty2: console de emergência
+sistema: SearXNG (contêiner, só em 127.0.0.1:8888)
 ```
 
 ## Sistema base
@@ -24,37 +27,30 @@ tty2: console de emergência
 | Peça | Escolha |
 | --- | --- |
 | Distribuição | Debian 13 (trixie) estável, instalado pelo instalador oficial sem nenhum desktop |
-| Disco | Partição única com LUKS2 e ext4 dentro. A senha do LUKS no boot faz o papel do login. |
-| Sessão | A unit `palantir-sessao` abre uma sessão PAM no tty1 e executa o Cage com o Chromium em kiosk |
-| Emergência | `Ctrl+Alt+F2` abre o console no tty2 |
-| Rede | NetworkManager, configurado pelo `nmtui` no console |
-| Contêineres | Podman rootless para ferramentas MCP e extração de documentos |
+| Disco | Partição única com LUKS2 e ext4 dentro |
+| Login | `greetd` com o Noctalia Greeter; usuários e senhas comuns do Linux |
+| Sessão | Compositor Umbriel e shell Noctalia: barra, lançador, notificações, Wi-Fi, Bluetooth, som, bloqueio de tela e agente do polkit |
+| Programas | Chromium (navegador padrão), Luciole (arquivos), Kitty (terminal) |
+| Keyring | GNOME Keyring, iniciado e destravado pela tela de login (as units de usuário ficam desligadas) |
+| Rede | NetworkManager |
+| Contêineres | Podman: sem root para as ferramentas de cada usuário; um contêiner do sistema para a busca |
 | Desenvolvimento | No host de desenvolvimento, enviando o binário ao HP por SSH, com acesso só por chave e só na rede local |
 
-O kernel 6.12 do trixie atende o AMD Renoir do HP. O firmware da placa Wi-Fi Intel AX200 vem no pacote `firmware-iwlwifi`, incluído pelo instalador.
+O kernel 6.12 do trixie atende o AMD Renoir do HP. O firmware da placa Wi-Fi Intel AX200 vem no pacote `firmware-iwlwifi`. O Noctalia vem do repositório `pkg.noctalia.dev`, restrito por preferência do APT ao próprio conjunto e às bibliotecas gráficas que ele exige, e usa o `trixie-backports`.
 
-O repositório versiona o script de pós-instalação ([deploy/pos-instalacao.sh](../deploy/pos-instalacao.sh)) com os pacotes, a unit da sessão, a unit do `palantird` e a política do Chromium. Reinstalar o HP exige apenas o instalador do Debian e esse script. O passo a passo está em [INSTALACAO.md](INSTALACAO.md).
+O repositório versiona o script de pós-instalação ([deploy/pos-instalacao.sh](../deploy/pos-instalacao.sh)) e os arquivos de [deploy/](../deploy). Reinstalar o HP exige apenas o instalador do Debian e esse script. O passo a passo está em [INSTALACAO.md](INSTALACAO.md).
 
 ## Sessão
 
-O Cage é um compositor Wayland que exibe uma única janela em tela cheia. A unit o executa com `-s`, que permite trocar de console, e ele abre o `palantir-quiosque`:
-
-```
-wlr-randr --output <saída> --scale <escala>
-chromium --kiosk --ozone-platform=wayland --user-data-dir=<perfil dedicado> http://127.0.0.1:7700/
-```
-
-- Perfil dedicado com sincronização, extensões e senhas salvas desativadas.
-- Política do Chromium que permite navegar só na origem local. Links externos não são navegáveis; o endereço é mostrado dentro da própria tela.
-- O quiosque espera o daemon responder antes de abrir o navegador.
-- Se o Chromium ou o Cage terminarem, a unit os reinicia.
-- A escala é aplicada pelo compositor: `--force-device-scale-factor` desenha a janela pela metade no Wayland.
-- O teclado segue o escolhido na instalação do Debian.
-- O Chromium foi escolhido por oferecer a plataforma web mais completa: visualizador de PDF, reconhecimento de voz e WebGPU.
+- A tela de login aparece depois da senha do disco. A senha digitada abre a sessão e destrava o keyring.
+- O Umbriel inicia o Noctalia e roda `palantird abrir`, que espera o daemon e abre o Chromium no Palantír. `Super+Shift+P` ou o atalho "Palantír" abrem de novo.
+- Fechar a tampa suspende o computador, que volta na tela de bloqueio do Noctalia.
+- A configuração do Umbriel em `/etc/xdg/umbriel/config.toml` é gerada a partir do padrão do pacote, com o teclado do Debian e a escala da tela do HP. A do Noctalia (tema escuro, bloqueio) é copiada para cada usuário na primeira vez. Ambas podem ser mudadas.
+- Cada usuário tem o próprio `palantird`, numa porta derivada do número do usuário (`7700` para o primeiro), com dados e chaves separados.
 
 ## palantird
 
-Daemon em Go, executado como serviço de usuário. Go oferece um binário único, boa concorrência para atividades em segundo plano e um SDK oficial de MCP. A lógica não depende de systemd.
+Daemon em Go, executado como serviço de usuário, um por pessoa. Go oferece um binário único, boa concorrência para atividades em segundo plano e um SDK oficial de MCP. A lógica não depende de systemd.
 
 | Módulo | Responsabilidade |
 | --- | --- |
@@ -115,4 +111,4 @@ Cada atividade tem um orçamento, e há também um teto mensal. A fila de atenç
 
 ## Versionamento do Palantír
 
-O sistema base muda pouco: `apt upgrade` e o Chromium. O `palantird`, as ferramentas e a interface mudam o tempo todo. Cada versão é instalada em `/opt/palantir/versoes/<versão>`, e o link `/opt/palantir/atual` aponta para a ativa; a imagem das ferramentas acompanha a versão. Voltar significa trocar o link (`palantir-versao voltar`). Antes de migrar o banco, o daemon grava uma cópia recuperável, e um programa antigo se recusa a abrir um banco mais novo.
+O sistema base muda pelo `apt upgrade`. O `palantird`, as ferramentas e a interface mudam o tempo todo. Cada versão é instalada em `/opt/palantir/versoes/<versão>`, e o link `/opt/palantir/atual` aponta para a ativa. A imagem das ferramentas é construída uma vez por versão e cada usuário a carrega no próprio Podman. Voltar significa trocar o link (`palantir-versao voltar`). Antes de migrar o banco, o daemon grava uma cópia recuperável, e um programa antigo se recusa a abrir um banco mais novo.

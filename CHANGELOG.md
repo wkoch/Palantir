@@ -1,7 +1,10 @@
 # Histórico de versões
 
-## Não lançado
+## v0.2.0
 
+**Mudança grande:** o kiosk deu lugar a uma sessão Linux comum. Quem instalou a v0.1.0 deve reinstalar pelo guia.
+
+- **Sessão:** Debian 13 com Umbriel, Noctalia e Noctalia Greeter; usuários e senhas do Linux; bloqueio ao voltar da suspensão; um Palantír por usuário.
 - **Acesso:** a API exige uma chave por usuário, entregue pelo `palantird abrir`; segredos no keyring por padrão.
 - **Navegação:** um endereço sozinho abre o site; tema escuro.
 - **Pesquisa:** a IA pesquisa na web por um SearXNG próprio; consultas com palavras novas depois de conteúdo externo pedem confirmação.

@@ -69,8 +69,7 @@ class PlApp extends Elemento {
     });
     window.addEventListener("hashchange", () => {
       if (location.hash.startsWith("#entrar=")) {
-        receberChave();
-        location.reload();
+        void receberChave().then(() => location.reload());
         return;
       }
       this.rota = location.hash;
@@ -217,5 +216,5 @@ class PlApp extends Elemento {
   }
 }
 // Antes de desenhar: a chave sai do endereço o quanto antes.
-receberChave();
+await receberChave();
 customElements.define("pl-app", PlApp);

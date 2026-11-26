@@ -173,7 +173,7 @@ export const test = base.extend<{ sistema: Sistema; semErros: void }>({
         if (m.type() === "error" && !esperado.test(m.text())) erros.push(m.text());
       });
       page.on("request", (r) => {
-        if (!/^(http|ws):\/\/(127\.0\.0\.1|localhost)[:/]|^(data|blob|chrome-extension):/.test(r.url())) externos.push(r.url());
+        if (!/^(http|ws):\/\/(127\.0\.0\.1|localhost)[:/]|^(data|blob|chrome-extension|file):/.test(r.url())) externos.push(r.url());
       });
       await page.coverage.startJSCoverage({ resetOnNavigation: false });
       await usar();

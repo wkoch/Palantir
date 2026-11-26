@@ -27,7 +27,7 @@ jobs:
       - name: Dependências da interface
         run: cd web && npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
       - name: Scripts de instalação
-        run: shellcheck --severity=warning deploy/pos-instalacao.sh deploy/palantir-versao deploy/palantir-sessao deploy/palantir-quiosque scripts/*.sh
+        run: shellcheck --severity=warning deploy/pos-instalacao.sh deploy/palantir-versao deploy/palantir-imagem scripts/*.sh
       - name: Testes, cobertura, injeção e navegador
         run: scripts/testar.sh
       - uses: actions/upload-artifact@v4

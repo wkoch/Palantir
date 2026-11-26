@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Nomes dos segredos que o Palantír usa.
@@ -129,7 +130,13 @@ func (a *Arquivo) Remover(_ context.Context, nome string) error {
 // SecretService usa o secret-tool (libsecret) para falar com o keyring.
 type SecretService struct{ Programa string }
 
+// prazoDoKeyring evita esperar para sempre por um pedido de senha que não tem
+// onde aparecer.
+var prazoDoKeyring = 30 * time.Second
+
 func (s *SecretService) executar(ctx context.Context, entrada string, args ...string) (string, error) {
+	ctx, cancelar := context.WithTimeout(ctx, prazoDoKeyring)
+	defer cancelar()
 	cmd := exec.CommandContext(ctx, s.Programa, args...)
 	cmd.Stdin = strings.NewReader(entrada)
 	var saida, erros bytes.Buffer

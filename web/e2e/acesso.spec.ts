@@ -1,3 +1,5 @@
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { abrir, criar, estado, expect, test } from "./base";
 
 test("sem a chave, a interface não mostra nada e explica como entrar", async ({ page, sistema }) => {
@@ -13,9 +15,21 @@ test("sem a chave, a interface não mostra nada e explica como entrar", async ({
   await page.reload();
   await expect(page.locator('[data-teste="modelos"]')).toBeVisible();
 
-  // Uma chave errada tira o acesso.
+  // Um endereço com uma chave inventada, como o que outro site poderia abrir,
+  // não troca a boa.
+  const recarregada = page.waitForEvent("load");
   await page.goto(`${sistema.url}/#entrar=errada`);
-  await expect(page.getByText("Esta janela não tem acesso aos seus dados.")).toBeVisible();
+  await recarregada;
+  await expect(page.locator('[data-teste="modelos"]')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("palantir.chave"))).toBe(sistema.chave);
+});
+
+test("o atalho do sistema abre a interface a partir de um arquivo local", async ({ page, sistema }) => {
+  const arquivo = join(sistema.pasta, "entrar.html");
+  await writeFile(arquivo, `<meta http-equiv="refresh" content="0;url=${sistema.url}/#entrar=${sistema.chave}">`);
+  await page.goto(`file://${arquivo}`);
+  await expect(page.locator('[data-teste="modelos"]')).toBeVisible();
+  expect(page.url()).toBe(`${sistema.url}/#/`);
 });
 
 test("uma aba sem acesso se recupera quando outra recebe a chave", async ({ context, page, sistema }) => {

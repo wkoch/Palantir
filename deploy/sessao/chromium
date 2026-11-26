@@ -1,0 +1,2 @@
+# Palantír: Chromium nativo no Wayland, com as senhas no keyring.
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --ozone-platform-hint=auto --password-store=gnome-libsecret --no-default-browser-check --no-first-run"

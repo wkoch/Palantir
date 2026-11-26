@@ -12,7 +12,7 @@ echo "== formatação e vet"
 [ -z "$(gofmt -l cmd internal)" ] || { echo "arquivos sem gofmt:"; gofmt -l cmd internal; exit 1; }
 go vet ./...
 bash -n scripts/*.sh deploy/pos-instalacao.sh deploy/palantir-versao
-sh -n deploy/palantir-sessao deploy/palantir-quiosque
+sh -n deploy/palantir-imagem
 
 echo "== testes Go (com detector de corrida)"
 go test -count=1 -race ./...

@@ -1,8 +1,8 @@
 # Palantír
 
-Palantír é um sistema pessoal *AI first* para um único usuário e um único computador, o HP ProBook x360 435 G7. Você não abre aplicativos nem gerencia pastas. Você inicia **atividades** e a IA faz o trabalho: triar e-mails, montar um relatório, preparar um estudo para concurso. Cada atividade aparece numa tela web montada a partir de uma biblioteca de componentes.
+Palantír é um sistema pessoal *AI first* para o HP ProBook x360 435 G7, com usuários comuns do Linux. Você não abre aplicativos nem gerencia pastas. Você inicia **atividades** e a IA faz o trabalho: triar e-mails, montar um relatório, preparar um estudo para concurso. Cada atividade aparece numa tela web montada a partir de uma biblioteca de componentes.
 
-Ao entrar no computador, você já está no Palantír. A web é a interface nativa do sistema, como o console de texto é a interface nativa do Linux.
+Ao entrar no computador, o Palantír abre no navegador, e é para ele que você volta. O resto é um Linux comum: outros sites, arquivos e terminal.
 
 ## Estado
 
@@ -10,7 +10,7 @@ As fases P0 a P4 estão implementadas e testadas com serviços simulados; a inst
 
 ## Instalar no HP
 
-Instale o Debian 13 sem desktop, com o disco cifrado, e execute o script de pós-instalação da release. O passo a passo está em [Instalação](docs/INSTALACAO.md).
+Instale o Debian 13 sem desktop, com o disco cifrado, e execute o script de pós-instalação da release: ele instala a sessão Noctalia, o Palantír e o mecanismo de busca. O passo a passo está em [Instalação](docs/INSTALACAO.md).
 
 ## Experimentar sem custo, no computador de desenvolvimento
 
@@ -51,11 +51,11 @@ Importe a pasta `/tmp/palantir-demo/exemplos` na tela Acervo.
 | Painel | Custos por modelo e finalidade e o diário de auditoria |
 | Ajustes | Chave do OpenRouter, IMAP, orçamento e hosts liberados |
 
-Atalhos: `g f` fila, `g a` acervo, `g p` painel, `g j` ajustes, `n` nova atividade, `?` ajuda. `Ctrl+Alt+F2` abre o console de emergência.
+Atalhos: `g f` fila, `g a` acervo, `g p` painel, `g j` ajustes, `n` nova atividade, `?` ajuda. No sistema, `Super` abre os programas e `Super+Shift+P`, o Palantír.
 
 ## Comandos
 
-No HP, pelo console:
+No HP, pelo terminal (`Super+Return`):
 
 | Comando | Para que serve |
 | --- | --- |
@@ -91,7 +91,7 @@ No computador de desenvolvimento:
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | Instruções para agentes de IA que trabalham neste repositório. |
 | [Visão](docs/VISAO.md) | O que é o sistema, os princípios e o que ele deliberadamente não faz. |
-| [Arquitetura](docs/ARQUITETURA.md) | Base Debian, sessão kiosk, `palantird`, acervo, telas e modelos. |
+| [Arquitetura](docs/ARQUITETURA.md) | Base Debian, sessão Noctalia, `palantird`, acervo, telas e modelos. |
 | [Segurança](docs/SEGURANCA.md) | Modelo de ameaça, injeção de prompt, permissões e a avaliação do safeagents. |
 | [Atividades](docs/ATIVIDADES.md) | E-mail, relatório e estudo para concurso, em detalhe. |
 | [Marcos](docs/MARCOS.md) | Fases P0 a P4, critérios e o que já foi demonstrado. |
@@ -105,7 +105,7 @@ No computador de desenvolvimento:
 ## Resumo da arquitetura
 
 - **Base:** Debian 13 (trixie), instalado sem desktop, com o disco inteiro em LUKS2.
-- **Sessão:** uma unit no tty1 abre o Cage com o Chromium em kiosk apontado para o daemon local. O tty2 fica como console de emergência.
+- **Sessão:** login com usuário e senha, Umbriel e Noctalia; o Palantír abre no Chromium ao entrar. Cada usuário tem o próprio daemon.
 - **Núcleo:** `palantird`, um daemon em Go que gerencia atividades, o loop do agente, permissões, orçamento e o acervo.
 - **Ferramentas:** servidores MCP em Podman rootless sem rede, que só saem pelo proxy do daemon.
 - **Modelos:** OpenRouter, sempre com retenção zero de dados (ZDR). O jev-router escolhe o modelo de cada pedido, e o Jev decide a triagem e julga ações.

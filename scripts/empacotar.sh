@@ -15,9 +15,10 @@ trap 'rm -rf "$TEMPORARIO"' EXIT
 PASTA="$TEMPORARIO/$NOME"
 mkdir -p "$PASTA" saida
 cp bin/palantird bin/palantir-tool bin/palantir-simulador "$PASTA/"
-cp deploy/Containerfile deploy/palantird.service deploy/palantir-sessao.service deploy/pam-palantir-sessao \
-	deploy/chromium-politica.json "$PASTA/"
-install -m 755 deploy/pos-instalacao.sh deploy/palantir-versao deploy/palantir-sessao deploy/palantir-quiosque "$PASTA/"
+cp deploy/Containerfile deploy/palantird.service "$PASTA/"
+cp -r deploy/sessao deploy/busca "$PASTA/"
+cp web/src/icone.svg "$PASTA/sessao/"
+install -m 755 deploy/pos-instalacao.sh deploy/palantir-versao deploy/palantir-imagem "$PASTA/"
 echo "$VERSAO" >"$PASTA/VERSAO"
 tar --create --gzip --owner=0 --group=0 --sort=name --file "saida/$NOME.tar.gz" --directory "$TEMPORARIO" "$NOME"
 (cd saida && sha256sum "$NOME.tar.gz" >SHA256SUMS)

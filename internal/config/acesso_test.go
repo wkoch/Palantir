@@ -3,6 +3,7 @@ package config_test
 import (
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/wkoch/Palantir/internal/config"
@@ -55,5 +56,35 @@ func TestChaveDeAcesso(t *testing.T) {
 	ruim := config.Caminhos{Config: "/proc/nao"}
 	if _, err := ruim.LerChaveDeAcesso(); err == nil {
 		t.Error("pasta impossível")
+	}
+}
+
+func TestPrimeiraExecucaoSimultanea(t *testing.T) {
+	for range 20 {
+		c, err := config.CaminhosPadrao(t.TempDir())
+		if err != nil {
+			t.Fatal(err)
+		}
+		var grupo sync.WaitGroup
+		var mu sync.Mutex
+		chaves := map[string]bool{}
+		for range 8 {
+			grupo.Go(func() {
+				if _, err := config.Carregar(c); err != nil {
+					t.Error(err)
+				}
+				k, err := c.LerChaveDeAcesso()
+				if err != nil {
+					t.Error(err)
+				}
+				mu.Lock()
+				chaves[k] = true
+				mu.Unlock()
+			})
+		}
+		grupo.Wait()
+		if len(chaves) != 1 {
+			t.Fatal("cada processo ficou com uma chave:", len(chaves))
+		}
 	}
 }

@@ -14,12 +14,17 @@ const guardada = "palantir.chave";
 /**
  * Recebe a chave de acesso trazida pelo comando `palantird abrir` e a tira do
  * endereço. O armazenamento local pertence só a esta origem, porta incluída.
+ * Uma chave só substitui a guardada se o daemon a aceitar: qualquer site pode
+ * levar o navegador a um endereço com uma chave inventada.
  */
-export function receberChave() {
+export async function receberChave() {
   const achado = /^#entrar=([\w-]+)$/.exec(location.hash);
   if (!achado) return;
-  localStorage.setItem(guardada, achado[1]!);
   history.replaceState(null, "", "#/");
+  const nova = achado[1]!;
+  const resposta = await fetch("/api/estado", { headers: { Authorization: `Bearer ${nova}` } }).catch(() => undefined);
+  // Sem resposta, guarda-se assim mesmo: o daemon pode estar reiniciando.
+  if (resposta?.status !== 401) localStorage.setItem(guardada, nova);
 }
 
 export const chave = () => localStorage.getItem(guardada) ?? "";

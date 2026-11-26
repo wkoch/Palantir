@@ -31,6 +31,22 @@ func (c Caminhos) ChaveDeAcesso() string { return filepath.Join(c.Config, "acess
 // Endereco é o arquivo em que o daemon em execução anota onde atende.
 func (c Caminhos) Endereco() string { return filepath.Join(c.Execucao, "endereco") }
 
+// criarInteiro grava um arquivo novo, que só aparece depois de completo: o
+// daemon e um comando podem criá-lo ao mesmo tempo. Se já existir, devolve
+// fs.ErrExist sem tocar nele.
+func criarInteiro(arquivo string, conteudo []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(arquivo), ".novo-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	_, err = tmp.Write(conteudo)
+	if err := errors.Join(err, tmp.Close()); err != nil {
+		return err
+	}
+	return os.Link(tmp.Name(), arquivo)
+}
+
 // LerChaveDeAcesso devolve a chave, criando-a na primeira vez. Só o dono lê o
 // arquivo, o que separa os usuários da máquina.
 func (c Caminhos) LerChaveDeAcesso() (string, error) {
@@ -45,16 +61,12 @@ func (c Caminhos) LerChaveDeAcesso() (string, error) {
 			return "", err
 		}
 		novo := base64.RawURLEncoding.EncodeToString(aleatorio)
-		f, err := os.OpenFile(arquivo, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		err := criarInteiro(arquivo, []byte(novo+"\n"))
 		if errors.Is(err, fs.ErrExist) {
 			// Outro processo criou ao mesmo tempo.
 			return c.LerChaveDeAcesso()
 		}
-		if err != nil {
-			return "", err
-		}
-		_, err = f.WriteString(novo + "\n")
-		return novo, errors.Join(err, f.Close())
+		return novo, err
 	}
 	if err != nil {
 		return "", err

@@ -1,0 +1,10 @@
+# O repositório pkg.noctalia.dev só pode fornecer o conjunto Noctalia e as
+# bibliotecas gráficas mais novas que ele exige. Qualquer outro pacote que ele
+# venha a oferecer é ignorado.
+Package: *
+Pin: origin pkg.noctalia.dev
+Pin-Priority: -1
+
+Package: noctalia noctalia-data noctalia-greeter fonts-noctalia-tabler umbriel xdg-desktop-portal-umbriel luciole nickh-archive-keyring libwlroots-0.20 libdrm* libpixman-1-0 libdisplay-info* libinput*
+Pin: origin pkg.noctalia.dev
+Pin-Priority: 500

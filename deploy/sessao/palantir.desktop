@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Palantír
+Comment=Conversar com a IA, atividades e acervo
+Exec=palantird abrir
+Icon=palantir
+Terminal=false
+Categories=Office;Utility;
+Keywords=ia;acervo;atividades;

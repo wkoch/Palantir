@@ -199,7 +199,7 @@ func Carregar(c Caminhos) (Config, error) {
 		if err := os.MkdirAll(c.Config, 0o700); err != nil {
 			return cfg, err
 		}
-		if err := os.WriteFile(c.Arquivo(), padrao, 0o600); err != nil {
+		if err := criarInteiro(c.Arquivo(), padrao); err != nil && !errors.Is(err, fs.ErrExist) {
 			return cfg, fmt.Errorf("criar configuração: %w", err)
 		}
 	}

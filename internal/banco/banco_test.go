@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -81,5 +82,23 @@ func TestEsquemaAtualEErros(t *testing.T) {
 	}
 	if _, err := Abrir(ctx, lixo); err == nil {
 		t.Error("deveria recusar um arquivo qualquer")
+	}
+}
+
+func TestAberturasSimultaneas(t *testing.T) {
+	for range 10 {
+		caminho := filepath.Join(t.TempDir(), "p.db")
+		var grupo sync.WaitGroup
+		for range 6 {
+			grupo.Go(func() {
+				db, err := Abrir(context.Background(), caminho)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				db.Close()
+			})
+		}
+		grupo.Wait()
 	}
 }

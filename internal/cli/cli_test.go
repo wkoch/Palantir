@@ -162,6 +162,9 @@ func TestDiagnosticoDosModelos(t *testing.T) {
 		}
 	}
 	i.quer(2, "argumentos a mais", "", "diagnostico", "--modelos", "x")
+	if s := i.quer(0, "ferramentas", "", "diagnostico", "--instalacao"); strings.Contains(s, "daemon") || strings.Contains(s, "chave") {
+		t.Error("a conferência da instalação olhou o que depende de uma sessão:", s)
+	}
 }
 
 func TestDiagnosticoDeFerramentasQuebradas(t *testing.T) {

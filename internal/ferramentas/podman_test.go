@@ -28,6 +28,9 @@ import (
 )
 
 func imagem(t *testing.T) string {
+	t.Helper()
+	// O Podman sem root fala com o systemd do usuário pelo D-Bus.
+	t.Setenv("DBUS_SESSION_BUS_ADDRESS", testes.BarramentoOriginal)
 	i := os.Getenv("PALANTIR_IMAGEM_TESTE")
 	if i == "" {
 		t.Skip("defina PALANTIR_IMAGEM_TESTE")
@@ -149,7 +152,7 @@ func TestPodmanContainerSemRede(t *testing.T) {
 	defer l.Close()
 	script := "cat /proc/net/dev | tail -n +3 | cut -d: -f1 | tr -d ' '; " +
 		"timeout 3 bash -c 'exec 3<>/dev/tcp/1.1.1.1/443' && echo ALCANCOU || echo isolado"
-	saida, err := exec.Command("podman", "run", "--rm", "--network=none", img, "bash", "-c", script).CombinedOutput()
+	saida, err := exec.Command("podman", "run", "--rm", "--network=none", img, "bash", "-c", script).Output()
 	if err != nil {
 		t.Fatal(string(saida), err)
 	}

@@ -52,6 +52,7 @@ comandos:
   diario [-n 50]             mostra as últimas entradas do diário
   diagnostico [--modelos]    confere se a instalação está em ordem; com --modelos,
                              faz chamadas reais e pagas (centavos) a cada nível
+  diagnostico --instalacao   confere só o que não depende de uma sessão iniciada
 
 --dir usa uma pasta própria para configuração e dados (desenvolvimento e demonstração).
 A variável PALANTIR_DIR tem o mesmo efeito.
@@ -367,7 +368,9 @@ func diario(_ context.Context, d *daemon.Daemon, args []string, a Ambiente) erro
 
 func diagnostico(ctx context.Context, d *daemon.Daemon, args []string, a Ambiente) error {
 	testarModelos := len(args) > 0 && args[0] == "--modelos"
-	if testarModelos {
+	// Durante a instalação não há keyring destravado nem daemon.
+	instalacao := len(args) > 0 && args[0] == "--instalacao"
+	if testarModelos || instalacao {
 		args = args[1:]
 	}
 	if err := semArgumentos(args); err != nil {
@@ -422,21 +425,22 @@ func diagnostico(ctx context.Context, d *daemon.Daemon, args []string, a Ambient
 		item(true, "ferramentas", "contêiner "+cfg.Ferramentas.Imagem+" sem rede")
 	}
 
-	chave, err := d.Cofre.Ler(ctx, segredos.OpenRouter)
-	if err != nil {
-		item(false, "segredos", err.Error())
-	} else {
-		aviso(chave != "", "chave do OpenRouter", "definida", "não definida; só funções locais")
+	if !instalacao {
+		chave, err := d.Cofre.Ler(ctx, segredos.OpenRouter)
+		if err != nil {
+			item(false, "segredos", err.Error())
+		} else {
+			aviso(chave != "", "chave do OpenRouter", "definida", "não definida; só funções locais")
+		}
+		senha, err := d.Cofre.Ler(ctx, segredos.SenhaIMAP)
+		if err != nil {
+			item(false, "segredos", err.Error())
+		} else {
+			aviso(cfg.IMAP.Servidor != "" && senha != "", "e-mail", cfg.IMAP.Servidor, "não configurado")
+		}
+		versao, ligado := emExecucao(ctx, d)
+		aviso(ligado, "daemon", "respondendo, versão "+versao, "não está respondendo em "+cfg.Servidor.Endereco)
 	}
-	senha, err := d.Cofre.Ler(ctx, segredos.SenhaIMAP)
-	if err != nil {
-		item(false, "segredos", err.Error())
-	} else {
-		aviso(cfg.IMAP.Servidor != "" && senha != "", "e-mail", cfg.IMAP.Servidor, "não configurado")
-	}
-	versao, ligado := emExecucao(ctx, d)
-	aviso(ligado, "daemon", "respondendo, versão "+versao, "não está respondendo em "+cfg.Servidor.Endereco)
-
 	if testarModelos {
 		for _, r := range d.TestarModelos(ctx) {
 			detalhe := fmt.Sprintf("%s, US$ %.5f", r.Modelo, r.CustoUSD)

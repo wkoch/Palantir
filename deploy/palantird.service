@@ -2,9 +2,15 @@
 Description=Palantír (daemon)
 Documentation=https://github.com/wkoch/Palantir
 StartLimitIntervalSec=0
+# Só para quem entra no computador, e não para as contas do sistema.
+ConditionUser=!@system
 
 [Service]
+# Cada usuário tem o próprio armazenamento do Podman: carrega a imagem das
+# ferramentas na primeira vez e depois de uma atualização.
+ExecStartPre=-/opt/palantir/atual/palantir-imagem
 ExecStart=/opt/palantir/atual/palantird servir
+TimeoutStartSec=600
 Restart=always
 RestartSec=2
 UMask=0077

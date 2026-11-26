@@ -155,3 +155,10 @@ Em vez de cópia automática, uma ação na tela: escolher o disco, confirmar, e
 ### Tema escuro
 
 É o padrão.
+
+### Como a sessão é instalada
+
+- O repositório do Noctalia entra com a chave conferida pela impressão digital e restrito, por preferência do APT, ao próprio conjunto e às bibliotecas gráficas mais novas que ele exige.
+- A imagem das ferramentas é construída uma vez por versão, como administrador, e cada usuário a carrega no próprio Podman. Construir por usuário repetiria minutos de download.
+- O SearXNG é um contêiner do sistema, sem privilégios e só em `127.0.0.1`, e não um por usuário.
+- O daemon de cada usuário roda enquanto a sessão existe, inclusive bloqueada. Sem *linger*: nada trabalha em nome de quem não entrou.

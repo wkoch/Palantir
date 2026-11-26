@@ -52,18 +52,20 @@ A IA organiza **visões**, como coleções, etiquetas e ligações, e não os by
 
 ### Funciona sem a IA
 
-Sem rede ou sem crédito, o sistema continua útil: o acervo, a busca, o material de estudo já gerado e a repetição espaçada funcionam localmente. Emergências são tratadas pelo console no tty2.
+Sem rede ou sem crédito, o sistema continua útil: o acervo, a busca, o material de estudo já gerado e a repetição espaçada funcionam localmente. E o computador continua sendo um Linux comum, com navegador, arquivos e terminal.
 
 ## Escopo
 
-- Um único usuário e um único computador: o HP ProBook x360 435 G7.
+- Um computador: o HP ProBook x360 435 G7.
+- Usuários e senhas comuns do Linux; cada pessoa tem o próprio Palantír, com acervo e chaves separados.
+- Uma sessão gráfica normal (Noctalia sobre o Umbriel), em que o Palantír abre ao entrar e para onde se volta.
+- Um endereço digitado sozinho abre o site, como em qualquer navegador.
 - Todos os documentos do usuário podem ser enviados aos modelos.
 - Modelos via OpenRouter.
 
 ## Fora do escopo do protótipo
 
 - Modo tablet, caneta e rotação de tela.
-- Uma sessão gráfica alternativa. O console no tty2 basta para emergências.
 - Atualização atômica do sistema base. O que precisa de retorno é o Palantír, não o Debian.
-- Múltiplos usuários, sincronização entre máquinas e distribuição pública.
+- Sincronização entre máquinas e distribuição pública.
 - Modelos locais de linguagem.

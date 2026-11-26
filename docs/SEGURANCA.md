@@ -12,7 +12,7 @@ O sistema guarda todos os documentos do usuário, tem acesso ao e-mail e envia c
 
 ## Defesas do protótipo
 
-1. **Disco inteiro em LUKS2** desde a instalação.
+1. **Disco inteiro em LUKS2** desde a instalação, login com senha e tela de bloqueio ao voltar da suspensão.
 2. **Ferramentas em contêiner sem rede.** Cada servidor MCP roda em Podman rootless com `--network=none` e acessa apenas o socket do proxy de saída e os próprios dados.
 3. **Proxy de saída com lista de hosts por ferramenta.** O MCP de IMAP só alcança o servidor IMAP, e o roteador de modelos só alcança o OpenRouter.
 4. **Proveniência por mensagem.** O daemon marca a origem de cada texto: você, modelo, ferramenta ou documento. Texto de ferramenta ou documento é dado e aparece de forma distinta na tela.
@@ -36,6 +36,14 @@ Todo pedido ao OpenRouter (conversa, vetores e decisões) leva as preferências 
 
 Limites: o conteúdo passa pelo OpenRouter e pelo provedor para ser processado, e o OpenRouter anunciou uma triagem automática de material de abuso sexual infantil que vale também para pedidos ZDR. O diário registra o modelo e o provedor que atenderam cada chamada.
 
+## A sessão
+
+O computador é um Linux comum, com navegador e programas. Isso amplia o que roda com o seu usuário em relação a um kiosk: um programa seu pode ler o que você lê. O que o Palantír garante continua valendo para o conteúdo que passa por ele.
+
+Fechar a tampa suspende com o disco decifrado; quem pegar o notebook encontra a tela de bloqueio, mas um ataque físico à memória fica fora do modelo. Para proteção completa fora de casa, desligue.
+
+O repositório do Noctalia é de terceiros: a chave é fixada pela impressão digital e a preferência do APT limita os pacotes que ele pode instalar. Quem o controla, controla o compositor e a tela de login.
+
 ## Acesso à API local
 
 O daemon escuta só em `127.0.0.1`, cada usuário na própria porta. A interface em si é pública, mas os dados e as ações exigem a chave de `~/.config/palantir/acesso` (permissão 0600).
@@ -43,7 +51,7 @@ O daemon escuta só em `127.0.0.1`, cada usuário na própria porta. A interface
 - `palantird abrir`, o atalho do sistema, grava um redirecionamento privado no diretório de execução e abre o navegador nele. A chave não passa pela linha de comando, visível a outros usuários.
 - A interface guarda a chave no armazenamento local do navegador, que pertence só àquela origem (porta incluída), e a envia num cabeçalho. Não há cookie, que valeria para qualquer porta.
 - O que o navegador abre sozinho (o original numa moldura, um download) usa um bilhete de cinco minutos para um único endereço.
-- Além da chave, o daemon continua recusando outro `Host`, outra origem e alterações sem o cabeçalho `X-Palantir`: o navegador agora abre qualquer site.
+- Além da chave, o daemon continua recusando outro `Host`, outra origem e alterações sem o cabeçalho `X-Palantir`: o navegador agora abre qualquer site. De fora só se pode navegar até a página, numa aba, como faz o atalho; uma chave inventada no endereço não substitui a boa.
 
 Limite: um programa executado com o seu próprio usuário pode ler a chave, como pode ler os seus documentos.
 
