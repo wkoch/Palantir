@@ -1,0 +1,58 @@
+name: verificar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Dependências do sistema
+        run: sudo apt-get update && sudo apt-get install --yes poppler-utils shellcheck
+      - name: Dependências da interface
+        run: cd web && npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Scripts de instalação
+        run: shellcheck --severity=warning deploy/pos-instalacao.sh deploy/palantir-versao deploy/palantir-sessao deploy/palantir-quiosque scripts/*.sh
+      - name: Testes, cobertura, injeção e navegador
+        run: scripts/testar.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: relatorio-navegador
+          path: web/relatorio-playwright
+
+  conteiner:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Ferramentas isoladas no Podman
+        run: scripts/testar-conteiner.sh
+
+  vulnerabilidades:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

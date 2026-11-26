@@ -18,11 +18,29 @@ O sistema guarda todos os documentos do usuário, tem acesso ao e-mail e envia c
 4. **Proveniência por mensagem.** O daemon marca a origem de cada texto: você, modelo, ferramenta ou documento. Texto de ferramenta ou documento é dado e aparece de forma distinta na tela.
 5. **Permissões por atividade.** A triagem de e-mail pode ler e etiquetar. Uma ferramenta fora da lista da atividade é bloqueada.
 6. **Confirmação para ações externas.** Enviar, apagar, publicar ou pagar entra numa fila de confirmação. A ação só acontece com o seu clique.
-7. **Segredos fora do modelo.** As chaves ficam no keyring (Secret Service) e são lidas pelo daemon, que as entrega só à ferramenta que precisa delas. O modelo pede a ação, nunca vê a credencial.
+7. **Segredos fora do modelo.** As chaves ficam num arquivo legível só pelo usuário, no disco cifrado, ou no keyring (Secret Service), e são lidas pelo daemon, que as entrega só à ferramenta que precisa delas. O modelo pede a ação, nunca vê a credencial. A interface grava e apaga segredos, mas não os lê.
 8. **Diário de auditoria.** Cada chamada de modelo e de ferramenta é registrada com origem, decisão e custo, num arquivo legível só pelo usuário.
 9. **Orçamento** por atividade e mensal, com interrupção quando o limite é atingido.
 10. **Autoproteção.** Nenhuma ferramenta ou atividade pode alterar a configuração do daemon, as permissões ou o diário.
 11. **SSH** só por chave e só na rede local.
+
+## Regras de acesso a endereços
+
+A decisão é código ([politica.go](../internal/politica/politica.go)). Só o que o usuário escreveu autoriza.
+
+| Situação | Sem conteúdo externo no contexto | Com conteúdo externo |
+| --- | --- | --- |
+| Endereço digitado pelo usuário | permite | permite |
+| Host liberado nos ajustes | permite | permite |
+| Host citado pelo usuário, outro endereço | permite | pede confirmação |
+| Host que o usuário não citou | pede confirmação | **bloqueia** |
+| IP, `localhost`, credenciais no endereço, porta incomum | bloqueia | bloqueia |
+
+O proxy repete a conferência por conta própria, resolve o nome ele mesmo, recusa endereços locais ou privados e conecta ao IP resolvido.
+
+## Proteção da importação
+
+A importação de pastas recusa a raiz do disco e nunca lê a configuração, os segredos, o banco ou o diário, mesmo por um link simbólico: um arquivo importado pode ser enviado aos modelos.
 
 ## Juiz de ações
 
@@ -37,7 +55,13 @@ A suíte de testes inclui um conjunto de e-mails, páginas e documentos malicios
 - uso de ferramenta fora das permissões da atividade;
 - leitura de segredos ou da configuração do daemon.
 
-Qualquer caso que leve a uma dessas ações reprova o build. A suíte roda contra um modelo simulado, para ser determinística, e periodicamente contra os modelos reais configurados.
+Qualquer caso que leve a uma dessas ações reprova o build. A suíte ([internal/injecao](../internal/injecao/injecao_test.go)) roda contra um **modelo comprometido**: assim que vê conteúdo externo, ele tenta tudo o que um atacante pediria. O daemon, o proxy e as ferramentas são os reais. Periodicamente ela também deve rodar contra os modelos configurados, com `PALANTIR_INJECAO_REAL=1` e `PALANTIR_OPENROUTER_KEY`.
+
+Limites conhecidos:
+
+- Um host liberado nos ajustes pode ser lido com qualquer caminho. Libere apenas sites que um atacante não controla.
+- Um resumo ou uma classificação pode ser distorcido por um texto malicioso. As defesas impedem ações, não opiniões erradas do modelo.
+- Qualquer programa local pode usar a API do daemon ([pendência](PENDENCIAS.md#acesso-à-api-local)).
 
 ## Avaliação do safeagents
 

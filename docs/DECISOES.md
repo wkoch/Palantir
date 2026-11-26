@@ -41,3 +41,49 @@ A IA organiza visões, não os arquivos. Isso preserva a procedência, permite r
 ## safeagents não entra como dependência
 
 As boas ideias do projeto são reimplementadas no `palantird`. A avaliação completa está em [SEGURANCA.md](SEGURANCA.md#avaliação-do-safeagents).
+
+## Implementação da v0.1.0
+
+Escolhas feitas durante a primeira implementação, em novembro de 2026.
+
+### Unit de sessão em vez de login automático pelo getty
+
+- **Escolhido:** unit de sistema com sessão PAM própria no tty1, que executa o Cage e é reiniciada pelo systemd.
+- **Por quê:** o reinício automático fica explícito, e o login automático do getty exigiria um script no perfil do shell.
+
+### Interface em Lit, sem Svelte
+
+Componentes web nativos, uma dependência de execução e empacotamento com esbuild. Os componentes desenham no DOM comum e usam uma folha de estilo única.
+
+### SQLite sem CGO e vetores comparados em Go
+
+`modernc.org/sqlite` mantém o binário estático. Uma extensão vetorial exigiria CGO; para o acervo de uma pessoa, comparar todos os vetores é rápido.
+
+### Poppler e Tesseract em vez de Docling
+
+A imagem fica com centenas de MB a menos e sem Python. Revisar se a estrutura de tabelas fizer falta.
+
+### Segredos em arquivo por padrão
+
+O keyring precisa de senha para destravar, e o login é automático. O arquivo 0600 fica no disco cifrado. O Secret Service continua disponível pela configuração.
+
+### Permissões fixas no código
+
+As ferramentas de cada tipo de atividade são uma tabela em Go. Nem a configuração, nem o modelo, nem um conteúdo externo a alteram.
+
+### Endereço desconhecido: confirmar sem conteúdo externo, bloquear com ele
+
+Depois que um documento ou uma página entrou no contexto, um host que o usuário não citou é tratado como possível ordem injetada e nem chega à fila de confirmação.
+
+### O modelo não vira ação na triagem
+
+A classificação é uma chamada sem ferramentas, com resposta restrita a quatro classes. Quem etiqueta é o código, e a ferramenta de e-mail não sabe enviar, mover nem apagar.
+
+### Escala pelo compositor
+
+`wlr-randr` aplica a escala. A opção de escala do Chromium desenhava a janela com metade do tamanho no Wayland, como mostrou o teste na VM.
+
+### Nomes de domínio em português
+
+Pacotes, tipos e a API usam os termos da documentação. Convenções do Go e das bibliotecas permanecem como são.
+

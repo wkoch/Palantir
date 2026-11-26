@@ -69,3 +69,28 @@ Cada fase só é considerada concluída depois de demonstrada no HP ProBook x360
 - Compilação de fluxos estáveis em rotinas determinísticas.
 - Saída de comandos do sistema em JSON, para atividades de administração.
 - Atividades que sobrevivem à suspensão e despertar programado para tarefas agendadas.
+
+## Situação
+
+Atualizada em 26 de novembro de 2026. Um critério só é marcado como cumprido quando demonstrado **no HP**.
+
+| Fase | Critério | Implementado e testado | VM Debian 13 | HP |
+| --- | --- | --- | --- | --- |
+| P0 | A fila aparece depois do boot, sem outra interação | sim | sim (sem LUKS) | pendente |
+| P0 | Uma atividade continua enquanto outra está em uso | sim | | pendente |
+| P0 | Reiniciar preserva o estado | sim | sim | pendente |
+| P0 | A sessão volta quando o Chromium é encerrado | sim | sim | pendente |
+| P1 | Importar a pasta de documentos e responder citando originais | sim, modelo simulado | parcial (importação e busca) | pendente |
+| P1 | Nenhum original muda de hash ao regenerar | sim | | pendente |
+| P2 | Relatório em segundo plano que avisa quando fica pronto | sim, modelo simulado | | pendente |
+| P2 | Corrigir uma seção não altera as outras | sim | | pendente |
+| P2 | Toda afirmação tem fonte | sim: parágrafos sem fonte válida são descartados | | pendente |
+| P3 | A suíte de injeção passa | sim, modelo comprometido simulado | | contra modelos reais: pendente |
+| P3 | O IMAP não alcança outro host | sim, com o Podman real | | pendente |
+| P3 | Triagem de uma manhã real em poucos minutos | | | pendente |
+| P4 | Árvore de um edital real apontando para o acervo | sim, com edital de exemplo | | pendente |
+| P4 | Revisões sem rede | sim | | pendente |
+| P4 | Uma sessão de estudo real concluída | | | pendente |
+
+Nos testes o modelo é simulado: eles medem o funcionamento, não a qualidade das respostas.
+

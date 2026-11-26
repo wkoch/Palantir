@@ -3,7 +3,7 @@
 ## Visão geral
 
 ```
-tty1: login automático ─► Cage ─► Chromium (kiosk) ─► http://localhost (interface)
+tty1: unit da sessão ─► Cage ─► Chromium (kiosk) ─► http://127.0.0.1:7700 (interface)
                                                          │ WebSocket
 ┌────────────────────────────────────────────────────────┴───────────────┐
 │ palantird (Go, serviço de usuário)                                      │
@@ -25,7 +25,7 @@ tty2: console de emergência
 | --- | --- |
 | Distribuição | Debian 13 (trixie) estável, instalado pelo instalador oficial sem nenhum desktop |
 | Disco | Partição única com LUKS2 e ext4 dentro. A senha do LUKS no boot faz o papel do login. |
-| Sessão | Login automático no tty1, que executa o Cage com o Chromium em kiosk |
+| Sessão | A unit `palantir-sessao` abre uma sessão PAM no tty1 e executa o Cage com o Chromium em kiosk |
 | Emergência | `Ctrl+Alt+F2` abre o console no tty2 |
 | Rede | NetworkManager, configurado pelo `nmtui` no console |
 | Contêineres | Podman rootless para ferramentas MCP e extração de documentos |
@@ -33,19 +33,23 @@ tty2: console de emergência
 
 O kernel 6.12 do trixie atende o AMD Renoir do HP. O firmware da placa Wi-Fi Intel AX200 vem no pacote `firmware-iwlwifi`, incluído pelo instalador.
 
-O repositório versiona um script de pós-instalação com os pacotes, a unit de login automático, a unit do `palantird` e a configuração do Chromium. Reinstalar o HP deve exigir apenas o instalador do Debian e esse script.
+O repositório versiona o script de pós-instalação ([deploy/pos-instalacao.sh](../deploy/pos-instalacao.sh)) com os pacotes, a unit da sessão, a unit do `palantird` e a política do Chromium. Reinstalar o HP exige apenas o instalador do Debian e esse script. O passo a passo está em [INSTALACAO.md](INSTALACAO.md).
 
 ## Sessão
 
-O Cage é um compositor Wayland que exibe uma única janela em tela cheia. Ele executa:
+O Cage é um compositor Wayland que exibe uma única janela em tela cheia. A unit o executa com `-s`, que permite trocar de console, e ele abre o `palantir-quiosque`:
 
 ```
-chromium --kiosk --ozone-platform=wayland --user-data-dir=<perfil dedicado> http://localhost:<porta>
+wlr-randr --output <saída> --scale <escala>
+chromium --kiosk --ozone-platform=wayland --user-data-dir=<perfil dedicado> http://127.0.0.1:7700/
 ```
 
 - Perfil dedicado com sincronização, extensões e senhas salvas desativadas.
-- Política do Chromium que permite navegar só na origem local. Links externos são abertos pela atividade, dentro de uma tela própria.
-- Se o Chromium ou o Cage terminarem, a unit da sessão os reinicia.
+- Política do Chromium que permite navegar só na origem local. Links externos não são navegáveis; o endereço é mostrado dentro da própria tela.
+- O quiosque espera o daemon responder antes de abrir o navegador.
+- Se o Chromium ou o Cage terminarem, a unit os reinicia.
+- A escala é aplicada pelo compositor: `--force-device-scale-factor` desenha a janela pela metade no Wayland.
+- O teclado segue o escolhido na instalação do Debian.
 - O Chromium foi escolhido por oferecer a plataforma web mais completa: visualizador de PDF, reconhecimento de voz e WebGPU.
 
 ## palantird
@@ -64,24 +68,34 @@ Daemon em Go, executado como serviço de usuário. Go oferece um binário único
 | Acervo | Importação, extração, índices e visões |
 | Telas | Registro dos esquemas e entrega dos dados à interface |
 
-A interface fala com o daemon apenas por HTTP e WebSocket locais.
+A interface fala com o daemon apenas por HTTP e WebSocket locais. O daemon recusa requisições com outro cabeçalho `Host` ou outra origem, e exige o cabeçalho `X-Palantir` em tudo o que altera algo.
+
+As ferramentas MCP estão no binário `palantir-tool`, com três servidores:
+
+| Servidor | Ferramentas | Rede |
+| --- | --- | --- |
+| `web` | `buscar_url` | Proxy, nos hosts liberados e no host da chamada autorizada |
+| `imap` | `buscar`, `ler`, `etiquetar` | Proxy, somente o servidor e a porta configurados |
+| `extrair` | `extrair` | Nenhuma; recebe um único original, só para leitura |
+
+Cada sessão é um contêiner novo (`--network=none --read-only --cap-drop=all`), e os segredos chegam pelo ambiente, fora da linha de comando.
 
 ## Acervo
 
 - **Entrada:** uma pasta vigiada recebe downloads, anexos e cópias de pendrive. Também é possível arrastar para a tela ou pedir a importação de uma pasta existente.
 - **Originais:** `~/.local/share/palantir/originais/<sha256>`, somente leitura depois de gravados.
-- **Extração:** texto, tabelas e estrutura de PDF, DOCX e afins, num contêiner com Docling ou ferramenta equivalente. O Python fica isolado no contêiner.
-- **Índices:** SQLite com FTS5 para busca textual e uma extensão vetorial para busca semântica. Embeddings e resumos são gerados pelo OpenRouter.
+- **Extração:** texto por página, num contêiner com Poppler, Tesseract (português e inglês, para páginas digitalizadas) e leitores próprios em Go para DOCX, ODF, XLSX, PPTX, HTML e e-mail.
+- **Índices:** SQLite com FTS5 para busca textual e vetores guardados no mesmo banco, comparados em Go; as duas listas são combinadas por posição. Para o acervo de uma pessoa, a varredura completa dispensa uma extensão vetorial. Embeddings, resumos e entidades são gerados pelo OpenRouter, e a busca textual funciona sem rede.
 - **Visões:** coleções, entidades e ligações entre documentos, montadas sob demanda.
 - **Exportação:** um arquivo compactado com originais e metadados em JSON.
 
 ## Biblioteca de telas
 
-Cada tela tem um esquema JSON e um componente web (Lit ou Svelte, compilados no build). O modelo escolhe a tela e envia os dados no esquema, e o daemon valida os dados antes de entregá-los.
+Cada tela tem um esquema JSON em `internal/telas/esquemas` e um componente web em Lit, compilado no build. O modelo escolhe a tela e envia os dados no esquema, e o daemon valida os dados antes de entregá-los.
 
-Telas iniciais: fila de atenção, conversa, documento com comentários por seção, lista de triagem, painel com indicadores, cartões de estudo e questionário.
+Telas: fila de atenção, conversa, documento com comentários por seção, lista de triagem, estudo (assuntos, cartões, questionário e desempenho), acervo, painel e ajustes. Numa conversa, o modelo pode escolher `indicadores` ou `tabela`.
 
-Páginas geradas pelo modelo rodam num iframe isolado, sem rede e sem acesso ao daemon. Uma página aprovada entra na biblioteca com versão e testes.
+Páginas geradas pelo modelo, num iframe isolado, sem rede e sem acesso ao daemon, ficam para depois do P4. Uma página aprovada entrará na biblioteca com versão e testes.
 
 ## Modelos
 
@@ -97,4 +111,4 @@ Cada atividade tem um orçamento, e há também um teto mensal. A fila de atenç
 
 ## Versionamento do Palantír
 
-O sistema base muda pouco: `apt upgrade` e o Chromium. O `palantird` e a biblioteca de telas mudam o tempo todo. Eles são instalados em diretórios versionados, e um link aponta para a versão ativa. Voltar significa trocar o link. Migrações do banco do acervo precisam ser compatíveis para leitura ou partir de uma cópia recuperável.
+O sistema base muda pouco: `apt upgrade` e o Chromium. O `palantird`, as ferramentas e a interface mudam o tempo todo. Cada versão é instalada em `/opt/palantir/versoes/<versão>`, e o link `/opt/palantir/atual` aponta para a ativa; a imagem das ferramentas acompanha a versão. Voltar significa trocar o link (`palantir-versao voltar`). Antes de migrar o banco, o daemon grava uma cópia recuperável, e um programa antigo se recusa a abrir um banco mais novo.

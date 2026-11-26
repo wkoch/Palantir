@@ -26,4 +26,4 @@ Estas instruções abrangem o repositório inteiro. Use português do Brasil par
 
 ## Para concluir
 
-Execute os testes do código alterado e informe o comando, o resultado e as limitações do ambiente. Mudanças em ferramentas, permissões ou no loop do agente precisam passar pela suíte de injeção de prompt descrita em [SEGURANCA.md](docs/SEGURANCA.md#testes-de-injeção). Atualize o README quando houver um comando novo e [MARCOS.md](docs/MARCOS.md) quando um critério tiver sido demonstrado no HP.
+Execute os testes do código alterado e informe o comando, o resultado e as limitações do ambiente. A verificação completa é `scripts/testar.sh`, que exige 80% de cobertura; mudanças em `deploy/` também passam por `scripts/testar-vm.sh`, e mudanças em ferramentas ou na imagem, por `scripts/testar-conteiner.sh`. Mudanças em ferramentas, permissões ou no loop do agente precisam passar pela suíte de injeção de prompt descrita em [SEGURANCA.md](docs/SEGURANCA.md#testes-de-injeção). Atualize o README quando houver um comando novo e [MARCOS.md](docs/MARCOS.md) quando um critério tiver sido demonstrado no HP.
