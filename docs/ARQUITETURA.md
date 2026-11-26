@@ -87,7 +87,7 @@ Cada sessão é um contêiner novo (`--network=none --read-only --cap-drop=all`)
 - **Extração:** texto por página, num contêiner com Poppler, Tesseract (português e inglês, para páginas digitalizadas) e leitores próprios em Go para DOCX, ODF, XLSX, PPTX, HTML e e-mail.
 - **Índices:** SQLite com FTS5 para busca textual e vetores guardados no mesmo banco, comparados em Go; as duas listas são combinadas por posição. Para o acervo de uma pessoa, a varredura completa dispensa uma extensão vetorial. Embeddings, resumos e entidades são gerados pelo OpenRouter, e a busca textual funciona sem rede.
 - **Visões:** coleções, entidades e ligações entre documentos, montadas sob demanda.
-- **Exportação:** um arquivo compactado com originais e metadados em JSON.
+- **Exportação e cópia:** um arquivo compactado com originais, metadados em JSON, o banco, a configuração e o diário, sem segredos nem a chave de acesso. A tela lista os discos que não são o do sistema, pede confirmação, grava em `Palantir-copias/`, relê o arquivo inteiro antes de dar o nome final e desmonta o que montou. `palantird restaurar` recompõe uma instalação vazia.
 
 ## Biblioteca de telas
 

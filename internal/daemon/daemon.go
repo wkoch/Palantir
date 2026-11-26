@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/wkoch/Palantir/internal/confirmacoes"
 	"github.com/wkoch/Palantir/internal/conversa"
 	"github.com/wkoch/Palantir/internal/diario"
+	"github.com/wkoch/Palantir/internal/discos"
 	"github.com/wkoch/Palantir/internal/email"
 	"github.com/wkoch/Palantir/internal/estudo"
 	"github.com/wkoch/Palantir/internal/eventos"
@@ -49,9 +51,15 @@ type Daemon struct {
 	Log          *slog.Logger
 	// Chave é o segredo que a interface apresenta à API.
 	Chave string
+	// Discos são os destinos das cópias de segurança.
+	Discos Discos
 
-	mu  sync.RWMutex
-	cfg config.Config
+	mu    sync.RWMutex
+	cfg   config.Config
+	copia EstadoDaCopia
+	// vida termina quando o daemon para; copias aguarda o que estiver gravando.
+	vida   context.Context
+	copias sync.WaitGroup
 
 	proxies []*proxy.Proxy
 	vigia   *acervo.Vigia
@@ -64,6 +72,8 @@ type Opcoes struct {
 	Log      *slog.Logger
 	// Resolver substitui a resolução de nomes do proxy de saída.
 	Resolver proxy.Resolver
+	// Discos substitui o acesso aos discos.
+	Discos Discos
 }
 
 // Config devolve a configuração vigente.
@@ -111,6 +121,11 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 	}
 	if d.DB, err = banco.Abrir(ctx, caminhos.Banco()); err != nil {
 		return nil, fmt.Errorf("banco: %w", err)
+	}
+	d.Discos, d.vida = o.Discos, context.Background()
+	if d.Discos == nil {
+		// As variáveis servem aos testes de ponta a ponta.
+		d.Discos = discos.Sistema{Lsblk: os.Getenv("PALANTIR_LSBLK"), Udisksctl: os.Getenv("PALANTIR_UDISKSCTL")}
 	}
 	d.Cofre = segredos.Novo(cfg.Segredos.Armazenamento, caminhos.Segredos())
 	d.Livro = orcamento.Novo(d.DB, func() float64 { return d.Config().Orcamento.MensalUSD })
@@ -193,6 +208,9 @@ func (d *Daemon) Iniciar(ctx context.Context) (func(), error) {
 		return nil, fmt.Errorf("retomar atividades: %w", err)
 	}
 	ctx, cancelar := context.WithCancel(ctx)
+	d.mu.Lock()
+	d.vida = ctx
+	d.mu.Unlock()
 	feito := make(chan struct{})
 	go func() {
 		defer close(feito)
@@ -207,11 +225,13 @@ func (d *Daemon) Iniciar(ctx context.Context) (func(), error) {
 	return func() {
 		cancelar()
 		<-feito
+		d.copias.Wait()
 	}, nil
 }
 
 // Fechar interrompe o trabalho e fecha os arquivos.
 func (d *Daemon) Fechar() error {
+	d.copias.Wait()
 	d.Gerente.Parar()
 	var erros []error
 	for _, p := range d.proxies {

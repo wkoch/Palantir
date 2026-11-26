@@ -6,6 +6,7 @@ import "./telas/ajustes";
 import "./telas/atividade";
 import "./telas/confirmacao";
 import "./telas/conversa";
+import "./telas/copia";
 import "./telas/estudo";
 import type { PlFila } from "./telas/fila";
 import "./telas/fila";

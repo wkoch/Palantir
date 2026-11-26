@@ -15,11 +15,8 @@ Itens que dependem de uma decisão ou de uma prova sua. Em cada um há o comport
 ### Custo da conversa
 O jev-router tem mandado a conversa com ferramentas ao Claude Opus 5.5 (cerca de US$ 0,01 por resposta nos testes). Se pesar, fixe um modelo mais barato no nível `principal` ou peça um limite ao roteador.
 
-### Cópia de segurança
-Há exportação manual, mas nenhuma cópia automática. Para o acervo real, vale definir destino (pendrive, outro computador, nuvem) e frequência.
-
-### Aparência
-O kiosk usa o tema claro (o Chromium sem desktop informa preferência clara) e escala 1,25. Há um tema escuro pronto na interface; diga se prefere que ele seja o padrão.
+### Cópia sem cifra
+A cópia para disco ou pendrive não é cifrada. **Atual:** um aviso na documentação. Posso cifrá-la com uma senha, ao custo de não abrir o arquivo em outro programa.
 
 ## Fora do que foi implementado
 

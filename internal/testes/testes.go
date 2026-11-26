@@ -86,6 +86,8 @@ type Opcoes struct {
 	Modelos  string
 	Config   string
 	Executor ferramentas.Executor
+	// Discos substitui os destinos de cópia; sem isso há um só, de mentira.
+	Discos daemon.Discos
 	// Busca liga a pesquisa na web simulada; BuscaURL usa um SearXNG de verdade.
 	Busca    bool
 	BuscaURL string
@@ -196,7 +198,12 @@ url = "` + busca + `"
 	if o.Executor != nil {
 		executor = o.Executor
 	}
-	s.D, err = daemon.Novo(ctx, s.Caminhos, daemon.Opcoes{Executor: executor, Resolver: s.Resolver,
+	// Nenhum teste enxerga os discos desta máquina.
+	destinos := o.Discos
+	if destinos == nil {
+		destinos = &Disco{Pasta: Pasta(t)}
+	}
+	s.D, err = daemon.Novo(ctx, s.Caminhos, daemon.Opcoes{Executor: executor, Resolver: s.Resolver, Discos: destinos,
 		Log: slog.New(slog.NewTextHandler(io.Discard, nil))})
 	falhar(err)
 	s.D.Roteador.Espera = time.Millisecond

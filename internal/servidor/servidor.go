@@ -20,6 +20,7 @@ import (
 	"github.com/wkoch/Palantir/internal/config"
 	"github.com/wkoch/Palantir/internal/confirmacoes"
 	"github.com/wkoch/Palantir/internal/daemon"
+	"github.com/wkoch/Palantir/internal/discos"
 	"github.com/wkoch/Palantir/internal/segredos"
 )
 
@@ -60,9 +61,10 @@ func codigoDe(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, atividades.ErrPedidoInvalido), errors.Is(err, segredos.ErrDesconhecido),
 		errors.Is(err, acervo.ErrNomeInvalido), errors.Is(err, acervo.ErrVazio),
-		errors.Is(err, acervo.ErrPastaProibida):
+		errors.Is(err, acervo.ErrPastaProibida), errors.Is(err, discos.ErrDesconhecido):
 		return http.StatusBadRequest
 	case errors.Is(err, atividades.ErrEstado), errors.Is(err, confirmacoes.ErrJaDecidida),
+		errors.Is(err, daemon.ErrCopiaEmAndamento),
 		errors.Is(err, acervo.ErrOriginais):
 		return http.StatusConflict
 	}
@@ -152,6 +154,8 @@ func (s *Servidor) Handler() http.Handler {
 	rota("POST /api/acervo/verificar", s.verificar)
 	rota("GET /api/exportar", s.exportar)
 	rota("POST /api/bilhetes", s.emitirBilhete)
+	rota("GET /api/discos", s.discos)
+	rota("POST /api/copia", s.copiar)
 
 	rota("GET /api/ajustes", s.ajustes)
 	rota("PUT /api/ajustes", s.gravarAjustes)

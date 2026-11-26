@@ -47,7 +47,7 @@ Importe a pasta `/tmp/palantir-demo/exemplos` na tela Acervo.
 | Relatório | Plano, pesquisa e redação com fontes; correção seção a seção; versão aprovada volta para o acervo |
 | Triagem de e-mail | Classifica e etiqueta pelo teclado; as correções viram preferências. Não envia nem apaga nada |
 | Estudo | Árvore do edital, questões, cartões com repetição espaçada e desempenho; revisa sem rede |
-| Acervo | Importar, procurar, organizar, conferir e exportar. Os originais nunca mudam |
+| Acervo | Importar, procurar, organizar, conferir e copiar para um disco ou pendrive. Os originais nunca mudam |
 | Painel | Custos por modelo e finalidade e o diário de auditoria |
 | Ajustes | Chave do OpenRouter, IMAP, orçamento e hosts liberados |
 
@@ -66,6 +66,7 @@ No HP, pelo console:
 | `palantird segredo listar` / `remover NOME` | Mostra o que está definido ou apaga |
 | `palantird importar CAMINHO...` | Importa arquivos ou pastas |
 | `palantird exportar ARQUIVO.zip` | Originais, metadados, atividades e cartões |
+| `palantird restaurar ARQUIVO.zip` | Recompõe uma instalação vazia a partir de uma cópia (pare o daemon antes) |
 | `palantird verificar` | Confere o hash de todos os originais |
 | `palantird regenerar` | Refaz todos os derivados |
 | `palantird diario -n 50` | Últimas entradas do diário |

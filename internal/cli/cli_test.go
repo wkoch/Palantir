@@ -223,3 +223,20 @@ func TestServirComPortaOcupada(t *testing.T) {
 	os.WriteFile(filepath.Join(i.dir, "config", "config.toml"), []byte("[servidor]\nendereco = \""+l+"\"\n[segredos]\narmazenamento = \"arquivo\"\n"), 0o600)
 	i.quer(1, "address already in use", "", "servir")
 }
+
+func TestRestaurar(t *testing.T) {
+	origem := nova(t, "")
+	arquivo := filepath.Join(t.TempDir(), "n.txt")
+	os.WriteFile(arquivo, []byte("nota guardada"), 0o600)
+	ferramentas := "[ferramentas]\nisolamento = \"nenhum\"\nbinario = \"" + ferramenta(t) + "\"\n"
+	origem = nova(t, ferramentas)
+	origem.quer(0, "1 importado(s)", "", "importar", arquivo)
+	copia := filepath.Join(t.TempDir(), "c.zip")
+	origem.quer(0, "Exportado", "", "exportar", copia)
+	origem.quer(1, "já tem documentos", "", "restaurar", copia)
+	destino := nova(t, "")
+	destino.quer(0, "Restaurado, com 1 original(is)", "", "restaurar", copia)
+	destino.quer(0, "1 original(is) íntegro(s)", "", "verificar")
+	destino.quer(2, "informe o arquivo", "", "restaurar")
+	nova(t, "").quer(1, "não pôde ser relida", "", "restaurar", arquivo)
+}

@@ -75,6 +75,12 @@ Um achado pode ser lido sem confirmação porque o endereço já existia no busc
 
 O proxy repete a conferência por conta própria, resolve o nome ele mesmo, recusa endereços locais ou privados e conecta ao IP resolvido.
 
+## Cópia de segurança
+
+A cópia só começa por um clique confirmado na tela; não é ferramenta de nenhuma atividade. Ela não leva segredos nem a chave de acesso, mas **não é cifrada**: quem tiver o disco lê o acervo. Guarde-o como guardaria os documentos, ou cifre o pendrive.
+
+A restauração só vale numa instalação vazia, grava apenas nomes conhecidos e confere a soma de cada original.
+
 ## Proteção da importação
 
 A importação de pastas recusa a raiz do disco e nunca lê a configuração, os segredos, o banco ou o diário, mesmo por um link simbólico: um arquivo importado pode ser enviado aos modelos.

@@ -2,7 +2,7 @@
 // pasta temporária, com portas livres.
 import { test as base, expect, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -50,6 +50,7 @@ export class Sistema {
   url = "";
   web = "";
   chave = "";
+  pendrive = "";
   pasta = "";
 
   async iniciar() {
@@ -63,11 +64,32 @@ export class Sistema {
     ]);
     const saida = await aguardar(this.simulador, /E-mail novo:.*\/entregar/, "simulador");
     this.web = /Página de exemplo:\s+(http:\/\/[\d.:]+)\/pagina/.exec(saida)![1]!;
+    await this.discosDeMentira();
     await this.ligar();
   }
 
+  /** Um pendrive que é só uma pasta: os testes nunca olham os discos reais. */
+  private async discosDeMentira() {
+    this.pendrive = join(this.pasta, "pendrive");
+    await mkdir(this.pendrive);
+    await this.definirDiscos([
+      { path: "/dev/teste", type: "disk", tran: "usb", rm: true, children: [
+        { path: "/dev/teste1", fstype: "ext4", label: "PENDRIVE", type: "part", size: 16 * 2 ** 30, mountpoints: [this.pendrive] },
+      ] },
+    ]);
+    await writeFile(join(this.pasta, "lsblk"), `#!/bin/sh\ncat ${join(this.pasta, "discos.json")}\n`, { mode: 0o700 });
+    await writeFile(join(this.pasta, "udisksctl"), "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+  }
+
+  async definirDiscos(blockdevices: unknown[]) {
+    await writeFile(join(this.pasta, "discos.json"), JSON.stringify({ blockdevices }));
+  }
+
   async ligar() {
-    this.daemon = spawn(join(binarios, "palantird"), ["--dir", this.pasta]);
+    this.daemon = spawn(join(binarios, "palantird"), ["--dir", this.pasta], {
+      env: { ...process.env, PALANTIR_LSBLK: join(this.pasta, "lsblk"), PALANTIR_UDISKSCTL: join(this.pasta, "udisksctl"),
+        DBUS_SESSION_BUS_ADDRESS: "unix:path=/dev/null/sem-keyring-nos-testes" },
+    });
     await aguardar(this.daemon, /palantird pronto/, "palantird");
     this.chave = (await readFile(join(this.pasta, "config", "acesso"), "utf8")).trim();
   }

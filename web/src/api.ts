@@ -68,7 +68,7 @@ export const api = {
 };
 
 export interface Aviso {
-  tipo: "atividade" | "acervo" | "ajustes" | "tudo" | "conexao" | "sem_acesso";
+  tipo: "atividade" | "acervo" | "ajustes" | "copia" | "tudo" | "conexao" | "sem_acesso";
   atividade?: number;
 }
 

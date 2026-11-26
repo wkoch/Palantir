@@ -344,7 +344,7 @@ func TestVerificarRegenerarExportar(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	if err := a.Exportar(ctx, &b, map[string]any{"extra.json": []int{1}}); err != nil {
+	if err := a.Exportar(ctx, &b, map[string]any{"extra.json": []int{1}}, nil); err != nil {
 		t.Fatal(err)
 	}
 	z, err := zip.NewReader(bytes.NewReader(b.Bytes()), int64(b.Len()))
@@ -365,10 +365,10 @@ func TestVerificarRegenerarExportar(t *testing.T) {
 	if string(partes[doc.Arquivo]) != contrato || len(doc.Entidades) == 0 || len(doc.Colecoes) != 2 || partes["extra.json"] == nil {
 		t.Errorf("%+v %v", doc, partes)
 	}
-	if a.Exportar(ctx, escritorRuim{}, nil) == nil {
+	if a.Exportar(ctx, escritorRuim{}, nil, nil) == nil {
 		t.Error("destino com falha")
 	}
-	if a.Exportar(ctx, io.Discard, map[string]any{"x": func() {}}) == nil {
+	if a.Exportar(ctx, io.Discard, map[string]any{"x": func() {}}, nil) == nil {
 		t.Error("extra não codificável")
 	}
 
@@ -390,7 +390,7 @@ func TestVerificarRegenerarExportar(t *testing.T) {
 	if _, p, _ := a.Verificar(ctx); len(p) != 1 {
 		t.Error(p)
 	}
-	if a.Exportar(ctx, io.Discard, nil) == nil {
+	if a.Exportar(ctx, io.Discard, nil, nil) == nil {
 		t.Error("exportação sem o original")
 	}
 	cancelado, cancelar := context.WithCancel(ctx)

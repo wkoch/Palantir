@@ -34,6 +34,7 @@ export function resumoDaImportacao(r: Relatorio) {
 /** Importar, procurar e organizar documentos, sem pastas. */
 export class PlAcervo extends Visao<Lista> {
   static override properties = {
+    copiando: { state: true },
     ...Visao.properties,
     colecao: { state: true },
     entidade: { state: true },
@@ -42,6 +43,7 @@ export class PlAcervo extends Visao<Lista> {
     trabalhando: { state: true },
   };
 
+  declare copiando: boolean;
   declare colecao: number;
   declare entidade: string;
   declare achados: Trecho[] | undefined;
@@ -54,6 +56,7 @@ export class PlAcervo extends Visao<Lista> {
     this.entidade = "";
     this.consulta = "";
     this.trabalhando = false;
+    this.copiando = false;
   }
 
   protected override async buscar() {
@@ -228,6 +231,10 @@ export class PlAcervo extends Visao<Lista> {
             <button type="button" ?disabled=${this.trabalhando} @click=${() => this.manutencao("/api/acervo/verificar")}>Verificar originais</button>
             <button type="button" ?disabled=${this.trabalhando} @click=${() => this.manutencao("/api/acervo/regenerar")}>Regenerar derivados</button>
           </div>
+          <h2>Cópia de segurança</h2>
+          ${this.copiando
+            ? html`<pl-copia></pl-copia>`
+            : html`<button type="button" @click=${() => (this.copiando = true)}>Copiar para um disco ou pendrive</button>`}
         </aside>
       </div>
     `;

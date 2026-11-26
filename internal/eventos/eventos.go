@@ -9,6 +9,7 @@ const (
 	Atividade = "atividade"
 	Acervo    = "acervo"
 	Ajustes   = "ajustes"
+	Copia     = "copia"
 	// Tudo pede que a interface recarregue o que mostra.
 	Tudo = "tudo"
 )

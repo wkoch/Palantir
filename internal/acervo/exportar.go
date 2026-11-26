@@ -9,7 +9,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"maps"
 	"os"
+	"slices"
 	"time"
 )
 
@@ -130,8 +133,9 @@ type DocumentoCompleto struct {
 }
 
 // Exportar grava um ZIP com os originais e os metadados. extras são arquivos
-// JSON adicionais, como o histórico das atividades.
-func (a *Acervo) Exportar(ctx context.Context, w io.Writer, extras map[string]any) error {
+// JSON adicionais, como o histórico das atividades, e copias, arquivos do disco
+// por nome dentro do ZIP.
+func (a *Acervo) Exportar(ctx context.Context, w io.Writer, extras map[string]any, copias map[string]string) error {
 	docs, err := a.todos(ctx)
 	if err != nil {
 		return err
@@ -199,5 +203,28 @@ func (a *Acervo) Exportar(ctx context.Context, w io.Writer, extras map[string]an
 			return err
 		}
 	}
+	for _, nome := range slices.Sorted(maps.Keys(copias)) {
+		if err := acrescentar(z, nome, copias[nome]); err != nil {
+			return fmt.Errorf("exportar %s: %w", nome, err)
+		}
+	}
 	return z.Close()
+}
+
+// acrescentar põe no ZIP um arquivo do disco; um que não existe é ignorado.
+func acrescentar(z *zip.Writer, nome, caminho string) error {
+	f, err := os.Open(caminho)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	destino, err := z.CreateHeader(&zip.FileHeader{Name: nome, Method: zip.Deflate, Modified: time.Now()})
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(destino, f)
+	return err
 }

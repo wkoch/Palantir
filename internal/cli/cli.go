@@ -17,6 +17,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/wkoch/Palantir/internal/config"
+	"github.com/wkoch/Palantir/internal/copia"
 	"github.com/wkoch/Palantir/internal/daemon"
 	"github.com/wkoch/Palantir/internal/ferramentas"
 	"github.com/wkoch/Palantir/internal/segredos"
@@ -45,6 +46,7 @@ comandos:
   segredo listar             mostra quais segredos estão definidos
   importar CAMINHO...        importa arquivos ou pastas para o acervo
   exportar ARQUIVO.zip       grava originais, metadados e atividades
+  restaurar ARQUIVO.zip      recompõe uma instalação vazia a partir de uma cópia
   verificar                  confere o hash de todos os originais
   regenerar                  refaz todos os derivados a partir dos originais
   diario [-n 50]             mostra as últimas entradas do diário
@@ -103,7 +105,7 @@ func executar(ctx context.Context, args []string, a Ambiente) error {
 		"verificar": verificar, "regenerar": regenerar, "diario": diario, "diagnostico": diagnostico,
 	}
 	f, ok := conhecidos[comando]
-	if !ok && comando != "abrir" {
+	if !ok && comando != "abrir" && comando != "restaurar" {
 		return erroDeUso{"comando desconhecido: " + comando}
 	}
 	caminhos, err := config.CaminhosPadrao(*dir)
@@ -113,9 +115,12 @@ func executar(ctx context.Context, args []string, a Ambiente) error {
 	if err := caminhos.Criar(); err != nil {
 		return err
 	}
-	if comando == "abrir" {
+	switch comando {
+	case "abrir":
 		// Não abre o banco: o daemon já está com ele.
 		return abrir(ctx, caminhos, args, a)
+	case "restaurar":
+		return restaurar(ctx, caminhos, args, a)
 	}
 	if comando == "servir" {
 		destravar, err := travar(caminhos)
@@ -143,6 +148,23 @@ func travar(c config.Caminhos) (func(), error) {
 		return nil, errors.New("já existe um palantird em execução com estes dados")
 	}
 	return func() { f.Close() }, nil
+}
+
+func restaurar(ctx context.Context, c config.Caminhos, args []string, a Ambiente) error {
+	if len(args) != 1 {
+		return erroDeUso{"informe o arquivo da cópia"}
+	}
+	destravar, err := travar(c)
+	if err != nil {
+		return fmt.Errorf("%w; pare-o com: systemctl --user stop palantird", err)
+	}
+	defer destravar()
+	n, err := copia.Restaurar(ctx, c, config.Expandir(args[0]))
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(a.Saida, "Restaurado, com %d original(is). Defina de novo a chave e a senha do e-mail.\n", n)
+	return nil
 }
 
 func semArgumentos(args []string) error {

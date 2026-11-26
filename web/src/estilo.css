@@ -230,3 +230,5 @@ dialog { background: var(--painel); color: var(--texto); border: 1px solid var(-
 dialog::backdrop { background: rgb(0 0 0 / 0.55); }
 dl.atalhos { display: grid; grid-template-columns: 8rem 1fr; gap: 0.35rem 1rem; margin: 0; }
 dl.atalhos dd { margin: 0; }
+
+.discos { border: 0; padding: 0; margin: 0 0 0.6rem; display: flex; flex-direction: column; gap: 0.4rem; }

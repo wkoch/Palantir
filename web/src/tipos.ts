@@ -238,3 +238,17 @@ export interface EntradaDiario {
   custo_usd?: number;
   detalhe?: string;
 }
+
+export interface Disco {
+  dispositivo: string;
+  nome: string;
+  sistema: string;
+  montagem: string;
+  tamanho: number;
+  removivel: boolean;
+}
+
+export interface Discos {
+  discos: Disco[];
+  copia: { rodando: boolean; disco: string; arquivo?: string; erro?: string; quando: string };
+}

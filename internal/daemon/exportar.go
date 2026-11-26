@@ -3,9 +3,13 @@ package daemon
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/wkoch/Palantir/internal/atividades"
+	"github.com/wkoch/Palantir/internal/copia"
 )
 
 type atividadeExportada struct {
@@ -21,8 +25,9 @@ type cartaoExportado struct {
 	Fonte     string `json:"fonte"`
 }
 
-// Exportar grava um ZIP com os originais, os metadados, as atividades e o
-// material de estudo. Segredos ficam de fora.
+// Exportar grava um ZIP com tudo o que é preciso para refazer a instalação:
+// originais, metadados, atividades, cartões, banco, configuração e diário. Os
+// segredos e a chave de acesso ficam de fora.
 func (d *Daemon) Exportar(ctx context.Context, w io.Writer) error {
 	lista, err := d.Armazem.Listar(ctx, true)
 	if err != nil {
@@ -52,5 +57,21 @@ func (d *Daemon) Exportar(ctx context.Context, w io.Writer) error {
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	return d.Acervo.Exportar(ctx, w, map[string]any{"atividades.json": exportadas, "cartoes.json": cartoes})
+	// Uma cópia consistente do banco, mesmo com atividades rodando.
+	pasta, err := os.MkdirTemp(d.Caminhos.Execucao, "copia-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(pasta)
+	banco := filepath.Join(pasta, "palantir.db")
+	if _, err := d.DB.ExecContext(ctx, "VACUUM INTO ?", banco); err != nil {
+		return fmt.Errorf("copiar o banco: %w", err)
+	}
+	return d.Acervo.Exportar(ctx, w, map[string]any{"atividades.json": exportadas, "cartoes.json": cartoes},
+		map[string]string{
+			copia.Banco:   banco,
+			copia.Config:  d.Caminhos.Arquivo(),
+			copia.Ajustes: d.Caminhos.Ajustes(),
+			copia.Diario:  d.Caminhos.Diario(),
+		})
 }
