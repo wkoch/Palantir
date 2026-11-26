@@ -35,6 +35,7 @@ const (
 
 // Erros de uso do acervo.
 var (
+	ErrPastaProibida = errors.New("essa pasta não pode ser importada")
 	ErrNaoEncontrado = errors.New("documento não encontrado")
 	ErrGrande        = errors.New("arquivo grande demais")
 	ErrVazio         = errors.New("arquivo vazio")
@@ -66,8 +67,11 @@ type Modelos interface {
 
 // Acervo é o repositório de documentos.
 type Acervo struct {
-	DB         *sql.DB
-	Originais  string
+	DB        *sql.DB
+	Originais string
+	// Privadas são pastas do próprio Palantír, com segredos, banco e diário.
+	// Nada dentro delas entra no acervo.
+	Privadas   []string
 	Executor   ferramentas.Executor
 	Modelos    Modelos
 	Config     func() config.Modelos
@@ -217,27 +221,71 @@ func (a *Acervo) importarArquivo(ctx context.Context, caminho, origem string) (b
 	return novo, err
 }
 
+// LimiteDeArquivos é o máximo de arquivos de uma única importação de pasta.
+const LimiteDeArquivos = 20_000
+
+// resolver devolve o caminho absoluto, sem links simbólicos quando existe.
+func resolver(caminho string) string {
+	if abs, err := filepath.Abs(caminho); err == nil {
+		caminho = abs
+	}
+	if real, err := filepath.EvalSymlinks(caminho); err == nil {
+		caminho = real
+	}
+	return caminho
+}
+
+// Contem informa se filho é a própria pasta pai ou está abaixo dela.
+func Contem(pai, filho string) bool {
+	rel, err := filepath.Rel(pai, filho)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func (a *Acervo) privadas() []string {
+	lista := []string{resolver(a.Originais)}
+	for _, p := range a.Privadas {
+		lista = append(lista, resolver(p))
+	}
+	return lista
+}
+
+// conferirCaminho recusa a raiz do sistema e as pastas do próprio Palantír.
+func (a *Acervo) conferirCaminho(real string) error {
+	if filepath.Dir(real) == real {
+		return fmt.Errorf("%w: a raiz do sistema inteira", ErrPastaProibida)
+	}
+	for _, p := range a.privadas() {
+		if Contem(p, real) {
+			return fmt.Errorf("%w: pertence ao próprio Palantír", ErrPastaProibida)
+		}
+	}
+	return nil
+}
+
 // ImportarCaminho importa um arquivo ou uma pasta inteira. Os arquivos de
-// origem não são alterados. Arquivos ocultos e links simbólicos são ignorados.
+// origem não são alterados. Arquivos ocultos, links simbólicos e as pastas do
+// próprio Palantír são ignorados.
 func (a *Acervo) ImportarCaminho(ctx context.Context, caminho, origem string) (Relatorio, error) {
 	rel := Relatorio{Falhas: []string{}}
 	info, err := os.Stat(caminho)
 	if err != nil {
 		return rel, err
 	}
+	real := resolver(caminho)
+	if err := a.conferirCaminho(real); err != nil {
+		return rel, err
+	}
 	if !info.IsDir() {
-		novo, err := a.importarArquivo(ctx, caminho, origem)
+		novo, err := a.importarArquivo(ctx, real, origem)
 		if err != nil {
 			return rel, err
 		}
 		rel.somar(novo)
 		return rel, nil
 	}
-	// O diretório de dados do próprio Palantír não é importável.
-	if dentro(a.Originais, caminho) {
-		return rel, errors.New("essa pasta pertence ao próprio acervo")
-	}
-	err = filepath.WalkDir(caminho, func(p string, d fs.DirEntry, err error) error {
+	privadas := a.privadas()
+	vistos := 0
+	err = filepath.WalkDir(real, func(p string, d fs.DirEntry, err error) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -245,15 +293,19 @@ func (a *Acervo) ImportarCaminho(ctx context.Context, caminho, origem string) (R
 			rel.Falhas = append(rel.Falhas, err.Error())
 			return nil
 		}
-		oculto := p != caminho && strings.HasPrefix(d.Name(), ".")
+		oculto := p != real && strings.HasPrefix(d.Name(), ".")
 		if d.IsDir() {
-			if oculto || p == a.Originais {
+			if oculto || slices.Contains(privadas, p) {
 				return fs.SkipDir
 			}
 			return nil
 		}
 		if oculto || !d.Type().IsRegular() {
 			return nil
+		}
+		if vistos++; vistos > LimiteDeArquivos {
+			rel.Falhas = append(rel.Falhas, fmt.Sprintf("a importação parou em %d arquivos; escolha pastas menores", LimiteDeArquivos))
+			return fs.SkipAll
 		}
 		novo, err := a.importarArquivo(ctx, p, origem)
 		if err != nil {
@@ -264,16 +316,6 @@ func (a *Acervo) ImportarCaminho(ctx context.Context, caminho, origem string) (R
 		return nil
 	})
 	return rel, err
-}
-
-// dentro informa se caminho é igual a base ou está abaixo dela.
-func dentro(base, caminho string) bool {
-	absoluto, err := filepath.Abs(caminho)
-	if err != nil {
-		return false
-	}
-	rel, err := filepath.Rel(base, absoluto)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 const colunas = `id, sha256, nome, tipo, tamanho, origem, importado_em, estado, erro, resumo, paginas`

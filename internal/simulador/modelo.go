@@ -108,6 +108,13 @@ type Resposta struct {
 	Status   int
 }
 
+// Definir troca o comportamento com o servidor no ar. nil volta ao padrão.
+func (m *Modelo) Definir(responder func(p PedidoRecebido) (Resposta, bool)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.Responder = responder
+}
+
 // Pedidos devolve o que já foi recebido.
 func (m *Modelo) Pedidos() []PedidoRecebido {
 	m.mu.Lock()
@@ -117,8 +124,8 @@ func (m *Modelo) Pedidos() []PedidoRecebido {
 
 // ServeHTTP implementa as rotas de completação e de embeddings.
 func (m *Modelo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	chave := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if chave == "" || chave == "recusada" {
+	chave, temChave := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !temChave || chave == "" || chave == "recusada" {
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]string{"message": "chave inválida"}})
 		return
@@ -163,8 +170,11 @@ func (m *Modelo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.mu.Unlock()
 		var resp Resposta
 		usada := false
-		if m.Responder != nil {
-			resp, usada = m.Responder(p)
+		m.mu.Lock()
+		responder := m.Responder
+		m.mu.Unlock()
+		if responder != nil {
+			resp, usada = responder(p)
 		}
 		if !usada {
 			resp = Padrao(p)

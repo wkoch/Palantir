@@ -57,7 +57,8 @@ func codigoDe(err error) int {
 		errors.Is(err, fs.ErrNotExist):
 		return http.StatusNotFound
 	case errors.Is(err, atividades.ErrPedidoInvalido), errors.Is(err, segredos.ErrDesconhecido),
-		errors.Is(err, acervo.ErrNomeInvalido), errors.Is(err, acervo.ErrVazio):
+		errors.Is(err, acervo.ErrNomeInvalido), errors.Is(err, acervo.ErrVazio),
+		errors.Is(err, acervo.ErrPastaProibida):
 		return http.StatusBadRequest
 	case errors.Is(err, atividades.ErrEstado), errors.Is(err, confirmacoes.ErrJaDecidida),
 		errors.Is(err, acervo.ErrOriginais):
@@ -102,6 +103,10 @@ func corpo[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	d := json.NewDecoder(http.MaxBytesReader(w, r.Body, 2<<20))
 	d.DisallowUnknownFields()
 	if err := d.Decode(&v); err != nil {
+		var grande *http.MaxBytesError
+		if errors.As(err, &grande) {
+			return v, err
+		}
 		return v, erroHTTP{http.StatusBadRequest, "corpo inválido: " + err.Error()}
 	}
 	return v, nil

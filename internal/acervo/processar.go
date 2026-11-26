@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -300,9 +301,11 @@ type Vigia struct {
 func (v *Vigia) Varrer(ctx context.Context) (Relatorio, error) {
 	rel := Relatorio{Falhas: []string{}}
 	pasta := v.Pasta()
-	if pasta == "" || dentro(v.Acervo.Originais, pasta) {
+	if pasta == "" || v.Acervo.conferirCaminho(resolver(pasta)) != nil {
 		return rel, nil
 	}
+	pasta = resolver(pasta)
+	privadas := v.Acervo.privadas()
 	agora := map[string]marcaArquivo{}
 	err := filepath.WalkDir(pasta, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -311,6 +314,9 @@ func (v *Vigia) Varrer(ctx context.Context) (Relatorio, error) {
 			}
 			rel.Falhas = append(rel.Falhas, err.Error())
 			return nil
+		}
+		if d.IsDir() && slices.Contains(privadas, p) {
+			return fs.SkipDir
 		}
 		if p != pasta && strings.HasPrefix(d.Name(), ".") {
 			if d.IsDir() {

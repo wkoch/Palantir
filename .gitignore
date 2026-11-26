@@ -6,3 +6,4 @@ cobertura/
 web/node_modules/
 web/test-results/
 web/relatorio-playwright/
+cobertura*

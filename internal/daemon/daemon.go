@@ -60,6 +60,8 @@ type Opcoes struct {
 	// Executor substitui a execução das ferramentas.
 	Executor ferramentas.Executor
 	Log      *slog.Logger
+	// Resolver substitui a resolução de nomes do proxy de saída.
+	Resolver proxy.Resolver
 }
 
 // Config devolve a configuração vigente.
@@ -116,7 +118,7 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 		executor = &ferramentas.Processo{Config: func() config.Ferramentas { return d.Config().Ferramentas }}
 	}
 	novoProxy := func(nome string, regras func() []proxy.Regra) *proxy.Proxy {
-		p := &proxy.Proxy{Ferramenta: nome, Diario: d.Diario, Fixas: regras,
+		p := &proxy.Proxy{Ferramenta: nome, Diario: d.Diario, Fixas: regras, Resolver: o.Resolver,
 			PermitirLocais: func() bool { return d.Config().Ferramentas.PermitirEnderecosLocais }}
 		d.proxies = append(d.proxies, p)
 		return p
@@ -139,7 +141,8 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 	})
 
 	d.Acervo = &acervo.Acervo{DB: d.DB, Originais: caminhos.Originais(), Executor: executor, Modelos: d.Roteador,
-		Config: func() config.Modelos { return d.Config().Modelos }, Diario: d.Diario,
+		Privadas: []string{caminhos.Config, caminhos.Dados, caminhos.Execucao},
+		Config:   func() config.Modelos { return d.Config().Modelos }, Diario: d.Diario,
 		Notificar: func() { d.Eventos.Publicar(eventos.Evento{Tipo: eventos.Acervo}) }}
 	d.vigia = &acervo.Vigia{Acervo: d.Acervo,
 		Pasta: func() string { return config.Expandir(d.Config().Acervo.PastaEntrada) }}

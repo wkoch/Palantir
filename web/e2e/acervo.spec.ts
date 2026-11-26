@@ -30,7 +30,7 @@ test("importar por arquivo, arrastando, por pasta e pela pasta de entrada", asyn
   await expect(page.getByRole("log")).toContainText("2 importado(s), 1 já no acervo");
   await page.getByLabel("Pasta ou arquivo deste computador").fill(join(sistema.pasta, "config"));
   await page.getByRole("button", { name: "Importar", exact: true }).click();
-  await expect(page.getByRole("log")).toContainText("arquivos do próprio Palantír");
+  await expect(page.getByRole("log")).toContainText("pertence ao próprio Palantír");
 
   await writeFile(join(sistema.pasta, "Entrada", "recibo.txt"), "Recibo de exemplo: R$ 40,00 em 02/11/2026.");
   await expect(page.getByRole("link", { name: /recibo\.txt/ })).toBeVisible({ timeout: 20_000 });

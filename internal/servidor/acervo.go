@@ -152,26 +152,8 @@ func (s *Servidor) importarPasta(w http.ResponseWriter, r *http.Request) (any, e
 	if !filepath.IsAbs(caminho) {
 		return nil, erroHTTP{http.StatusBadRequest, "informe o caminho completo, como ~/Documentos"}
 	}
-	// As pastas do próprio Palantír guardam segredos e o diário.
-	for _, privada := range []string{s.D.Caminhos.Config, s.D.Caminhos.Dados, s.D.Caminhos.Execucao} {
-		if sobrepoem(privada, caminho) {
-			return nil, erroHTTP{http.StatusBadRequest, "essa pasta contém arquivos do próprio Palantír"}
-		}
-	}
 	rel, err := s.D.Acervo.ImportarCaminho(r.Context(), caminho, "pasta")
 	return map[string]any{"relatorio": rel}, err
-}
-
-// sobrepoem informa se um caminho contém o outro, depois de resolver links.
-func sobrepoem(a, b string) bool {
-	resolver := func(p string) string {
-		if r, err := filepath.EvalSymlinks(p); err == nil {
-			p = r
-		}
-		return filepath.Clean(p) + string(filepath.Separator)
-	}
-	a, b = resolver(a), resolver(b)
-	return strings.HasPrefix(a, b) || strings.HasPrefix(b, a)
 }
 
 func (s *Servidor) busca(_ http.ResponseWriter, r *http.Request) (any, error) {
