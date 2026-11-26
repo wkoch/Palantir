@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "required": ["mensagens", "preferencias", "resumo", "etiqueta"],
+  "properties": {
+    "resumo": { "type": "string" },
+    "atualizado_em": { "type": "string" },
+    "etiqueta": { "type": "boolean" },
+    "mensagens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["uid", "de", "email", "assunto", "data", "trecho", "classe", "resumo", "origem", "etiquetada", "concluida"],
+        "properties": {
+          "uid": { "type": "integer", "minimum": 1 },
+          "de": { "type": "string" },
+          "email": { "type": "string" },
+          "assunto": { "type": "string" },
+          "data": { "type": "string" },
+          "trecho": { "type": "string" },
+          "classe": { "enum": ["", "urgente", "responder", "ler_depois", "lixo"] },
+          "resumo": { "type": "string" },
+          "origem": { "enum": ["", "regra", "modelo", "usuario"] },
+          "etiquetada": { "type": "boolean" },
+          "concluida": { "type": "boolean" }
+        }
+      }
+    },
+    "preferencias": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["remetente", "classe"],
+        "properties": {
+          "remetente": { "type": "string" },
+          "classe": { "enum": ["urgente", "responder", "ler_depois", "lixo"] },
+          "assunto": { "type": "string" }
+        }
+      }
+    }
+  }
+}

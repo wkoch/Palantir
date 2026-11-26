@@ -1,0 +1,20 @@
+{
+  "name": "palantir-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "construir": "node construir.mjs",
+    "tipos": "tsc --noEmit",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.11",
+    "esbuild": "0.28.2",
+    "monocart-coverage-reports": "3.3.0",
+    "typescript": "7.0.2"
+  }
+}

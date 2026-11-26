@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["titulo", "indicadores"],
+  "properties": {
+    "titulo": { "type": "string", "maxLength": 200 },
+    "indicadores": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rotulo", "valor"],
+        "properties": {
+          "rotulo": { "type": "string", "maxLength": 80 },
+          "valor": { "type": "string", "maxLength": 80 },
+          "detalhe": { "type": "string", "maxLength": 200 }
+        }
+      }
+    }
+  }
+}

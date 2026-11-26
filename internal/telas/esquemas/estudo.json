@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "required": ["extraido", "assuntos", "cartoes", "questoes", "painel"],
+  "properties": {
+    "extraido": { "type": "boolean" },
+    "assuntos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "pai", "titulo", "folha", "material", "cartoes", "vencidos", "questoes", "respostas", "acertos", "pendente", "aviso"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "pai": { "type": "integer", "minimum": 0 },
+          "titulo": { "type": "string" }
+        }
+      }
+    },
+    "cartoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "assunto", "frente", "verso", "fonte", "novo"],
+        "properties": {
+          "frente": { "type": "string" },
+          "verso": { "type": "string" }
+        }
+      }
+    },
+    "questoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "assunto", "enunciado", "alternativas", "situacao"],
+        "properties": {
+          "id": { "type": "integer" },
+          "assunto": { "type": "integer" },
+          "enunciado": { "type": "string" },
+          "alternativas": { "type": "array", "minItems": 2, "maxItems": 5, "items": { "type": "string" } },
+          "situacao": { "enum": ["nova", "errada", "certa"] }
+        }
+      }
+    },
+    "painel": {
+      "type": "object",
+      "required": ["cartoes", "vencidos", "questoes", "respostas", "acertos", "hoje", "proxima_em", "mais_fraco"]
+    }
+  }
+}

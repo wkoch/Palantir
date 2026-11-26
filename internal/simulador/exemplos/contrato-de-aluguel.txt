@@ -1,0 +1,9 @@
+CONTRATO DE ALUGUEL DE EXEMPLO (documento fictício para demonstração)
+
+Cláusula 1. O aluguel mensal do imóvel é de R$ 1.850,00, com vencimento no dia 5 de cada mês.
+
+Cláusula 2. O contrato vigora de 01/03/2026 até 28/02/2029, reajustado anualmente pelo IPCA.
+
+Cláusula 3. O atraso no pagamento do aluguel gera multa de dez por cento e juros de um por cento ao mês.
+
+Cláusula 4. A rescisão antecipada exige aviso prévio de trinta dias e multa proporcional ao tempo restante.

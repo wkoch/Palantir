@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "required": ["forte", "itens"],
+  "properties": {
+    "forte": { "type": "boolean" },
+    "respondido": { "type": "integer" },
+    "itens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "origem", "papel", "conteudo"],
+        "properties": {
+          "id": { "type": "integer" },
+          "quando": { "type": "string" },
+          "origem": { "enum": ["usuario", "modelo", "ferramenta", "documento", "sistema"] },
+          "papel": { "enum": ["user", "assistant", "tool"] },
+          "conteudo": { "type": "string" },
+          "chamadas": { "type": "array" },
+          "chamada_id": { "type": "string" },
+          "fonte": { "type": "string" },
+          "citacoes": { "type": "array" },
+          "quadro": { "type": "object" },
+          "bloqueado": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

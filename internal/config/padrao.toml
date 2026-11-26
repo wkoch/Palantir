@@ -1,0 +1,62 @@
+# Configuração do Palantír.
+#
+# Este arquivo é seu: o daemon só o lê. Ajustes feitos pela tela "Ajustes"
+# são gravados em ajustes.toml, ao lado deste arquivo, e têm prioridade.
+# Segredos (chave do OpenRouter, senha do IMAP) nunca entram aqui.
+
+[servidor]
+# Só endereços locais são aceitos.
+endereco = "127.0.0.1:7700"
+
+[modelos]
+url = "https://openrouter.ai/api/v1"
+# Três níveis: barato (classificar, extrair), principal (conversa, redação)
+# e forte (pesquisa profunda e revisão crítica, quando pedido).
+barato = "anthropic/claude-haiku-5.5"
+principal = "anthropic/claude-sonnet-5.5"
+forte = "anthropic/claude-opus-5.5"
+# Deixe vazio para desligar a busca semântica.
+embeddings = "baai/bge-m3"
+# Consulta o modelo barato como juiz antes de pedir confirmação.
+# O juiz pode bloquear, nunca liberar.
+juiz = true
+# Extrai entidades e resumos dos documentos importados (custa créditos).
+enriquecer = true
+
+[orcamento]
+mensal_usd = 20.0
+por_atividade_usd = 1.0
+
+[ferramentas]
+# "podman" isola cada ferramenta num contêiner sem rede.
+# "nenhum" executa o binário direto no host: somente para desenvolvimento.
+isolamento = "podman"
+imagem = "localhost/palantir-ferramentas:atual"
+binario = "palantir-tool"
+# Permite que o proxy de saída alcance endereços locais ou privados
+# listados para uma ferramenta. Necessário só em testes.
+permitir_enderecos_locais = false
+
+[ferramentas.web]
+# Hosts que a pesquisa pode acessar sem confirmação.
+hosts = ["pt.wikipedia.org", "www.planalto.gov.br", "www.gov.br"]
+
+[imap]
+servidor = ""
+porta = 993
+usuario = ""
+caixa = "INBOX"
+limite = 50
+# Grava a classificação como etiqueta no servidor.
+etiquetar = true
+# "tls", "starttls" ou "nenhum" (somente testes em localhost).
+seguranca = "tls"
+
+[acervo]
+pasta_entrada = "~/Palantir/Entrada"
+intervalo_segundos = 10
+
+[segredos]
+# "arquivo": arquivo legível só por você, no disco cifrado com LUKS.
+# "secret-service": usa o secret-tool (exige um keyring destravado).
+armazenamento = "arquivo"

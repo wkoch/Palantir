@@ -1,2 +1,8 @@
 .directory
 graft/
+bin/
+saida/
+cobertura/
+web/node_modules/
+web/test-results/
+web/relatorio-playwright/

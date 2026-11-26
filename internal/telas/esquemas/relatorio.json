@@ -1,0 +1,57 @@
+{
+  "type": "object",
+  "required": ["profundo", "perguntas", "planejado", "secoes", "fontes", "versoes"],
+  "properties": {
+    "profundo": { "type": "boolean" },
+    "planejado": { "type": "boolean" },
+    "perguntas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["texto", "resposta"],
+        "properties": { "texto": { "type": "string" }, "resposta": { "type": "string" } }
+      }
+    },
+    "secoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "titulo", "estado", "paragrafos", "comentarios", "descartadas", "aviso"],
+        "properties": {
+          "id": { "type": "integer" },
+          "titulo": { "type": "string" },
+          "estado": { "enum": ["pendente", "rascunho", "aprovada"] },
+          "descartadas": { "type": "integer" },
+          "aviso": { "type": "string" },
+          "paragrafos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["texto", "fontes"],
+              "properties": {
+                "texto": { "type": "string" },
+                "fontes": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+              }
+            }
+          },
+          "comentarios": { "type": "array" }
+        }
+      }
+    },
+    "fontes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "tipo", "titulo", "texto"],
+        "properties": {
+          "id": { "type": "string" },
+          "tipo": { "enum": ["documento", "url"] },
+          "titulo": { "type": "string" },
+          "texto": { "type": "string" }
+        }
+      }
+    },
+    "liberadas": { "type": ["array", "null"] },
+    "versoes": { "type": "array" }
+  }
+}
