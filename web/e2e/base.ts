@@ -128,8 +128,10 @@ export const test = base.extend<{ sistema: Sistema; semErros: void }>({
       const externos: string[] = [];
       page.on("pageerror", (e) => erros.push(e.message));
       page.on("console", (m) => {
-        // Respostas HTTP de erro são esperadas em alguns testes.
-        if (m.type() === "error" && !/Failed to load resource|WebSocket connection/.test(m.text())) erros.push(m.text());
+        // Respostas HTTP de erro são esperadas em alguns testes. A moldura do
+        // original recusa a injeção do próprio Playwright, como deve.
+        const esperado = /Failed to load resource|WebSocket connection|Blocked script execution in '[^']+\/original'/;
+        if (m.type() === "error" && !esperado.test(m.text())) erros.push(m.text());
       });
       page.on("request", (r) => {
         if (!/^(http|ws):\/\/(127\.0\.0\.1|localhost)[:/]|^(data|blob|chrome-extension):/.test(r.url())) externos.push(r.url());

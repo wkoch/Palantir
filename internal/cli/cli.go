@@ -49,7 +49,8 @@ comandos:
   verificar                  confere o hash de todos os originais
   regenerar                  refaz todos os derivados a partir dos originais
   diario [-n 50]             mostra as últimas entradas do diário
-  diagnostico                confere se a instalação está em ordem
+  diagnostico [--modelos]    confere se a instalação está em ordem; com --modelos,
+                             faz chamadas reais e pagas (centavos) a cada nível
 
 --dir usa uma pasta própria para configuração e dados (desenvolvimento e demonstração).
 A variável PALANTIR_DIR tem o mesmo efeito.
@@ -349,6 +350,10 @@ func diario(_ context.Context, d *daemon.Daemon, args []string, a Ambiente) erro
 }
 
 func diagnostico(ctx context.Context, d *daemon.Daemon, args []string, a Ambiente) error {
+	testarModelos := len(args) > 0 && args[0] == "--modelos"
+	if testarModelos {
+		args = args[1:]
+	}
 	if err := semArgumentos(args); err != nil {
 		return err
 	}
@@ -415,6 +420,16 @@ func diagnostico(ctx context.Context, d *daemon.Daemon, args []string, a Ambient
 	}
 	versao, ligado := emExecucao(ctx, d)
 	aviso(ligado, "daemon", "respondendo, versão "+versao, "não está respondendo em "+cfg.Servidor.Endereco)
+
+	if testarModelos {
+		for _, r := range d.TestarModelos(ctx) {
+			detalhe := fmt.Sprintf("%s, US$ %.5f", r.Modelo, r.CustoUSD)
+			if r.Erro != nil {
+				detalhe = r.Erro.Error()
+			}
+			item(r.Erro == nil, r.Nome, detalhe)
+		}
+	}
 
 	n, problemas, err := d.Acervo.Verificar(ctx)
 	if err != nil {

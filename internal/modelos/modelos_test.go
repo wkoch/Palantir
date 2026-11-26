@@ -100,7 +100,8 @@ func TestCompletarEnviaTudoEContabiliza(t *testing.T) {
 		t.Error(r.CustoUSD)
 	}
 	if corpo["model"] != "m/barato" || corpo["max_tokens"] != float64(50) || corpo["tools"] == nil ||
-		corpo["response_format"] == nil || len(corpo["messages"].([]any)) != 3 {
+		corpo["response_format"] == nil || len(corpo["messages"].([]any)) != 3 || corpo["tool_choice"] != nil ||
+		corpo["messages"].([]any)[1].(map[string]any)["content"] != nil {
 		t.Errorf("%v", corpo)
 	}
 	if v, _ := a.livro.NoMes(ctx); v != 30 {

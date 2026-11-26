@@ -42,6 +42,7 @@ body {
 }
 pl-app { display: flex; flex-direction: column; min-height: 100%; }
 a { color: var(--info); }
+a > button { color: var(--texto); }
 h1 { font-size: 1.45rem; line-height: 1.25; margin: 0; }
 h2 { font-size: 1.1rem; margin: 1.6rem 0 0.6rem; }
 h3 { font-size: 1rem; margin: 0 0 0.4rem; }
@@ -209,7 +210,11 @@ td.numero, th.numero { text-align: right; font-variant-numeric: tabular-nums; }
   background: var(--painel); border: 1px solid var(--borda); border-radius: var(--raio);
   padding: 0.55rem 0.9rem; margin-bottom: 0.4rem; cursor: pointer;
 }
-.mensagem[aria-selected="true"] { border-color: var(--acento); box-shadow: inset 3px 0 0 var(--acento); }
+.mensagem[aria-selected="true"] {
+  border-color: var(--acento);
+  box-shadow: 0 0 0 1px var(--acento);
+  background: color-mix(in srgb, var(--acento) 9%, var(--painel));
+}
 .mensagem.concluida { opacity: 0.5; }
 .mensagem .assunto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 700px) { .mensagem { grid-template-columns: 1fr; } }
@@ -224,6 +229,8 @@ td.numero, th.numero { text-align: right; font-variant-numeric: tabular-nums; }
 .alternativas label.certa { border-color: var(--ok); }
 .alternativas label.errada { border-color: var(--perigo); }
 tr.filho td:first-child { padding-left: 1.8rem; }
+
+iframe.original { width: 100%; height: 75vh; border: 1px solid var(--borda); border-radius: var(--raio); background: #fff; margin-top: 0.8rem; }
 
 /* Avisos flutuantes e arrastar */
 .torradas { position: fixed; right: 1rem; bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; z-index: 20; max-width: min(28rem, calc(100vw - 2rem)); }

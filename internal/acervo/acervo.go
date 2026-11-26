@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -82,6 +83,9 @@ type Acervo struct {
 	importacao sync.Mutex
 	// processamento impede que duas rodadas tratem o mesmo documento.
 	processamento sync.Mutex
+	// adiado é até quando os modelos ficam de lado depois de uma falha externa,
+	// para não repetir a chamada a cada varredura.
+	adiado atomic.Int64
 }
 
 func (a *Acervo) sinal() chan struct{} {
@@ -91,6 +95,7 @@ func (a *Acervo) sinal() chan struct{} {
 
 // Acordar pede uma rodada de processamento ao trabalhador.
 func (a *Acervo) Acordar() {
+	a.adiado.Store(0)
 	select {
 	case a.sinal() <- struct{}{}:
 	default:

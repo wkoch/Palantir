@@ -148,6 +148,21 @@ func TestAcervoPelaLinhaDeComando(t *testing.T) {
 	i.quer(1, "regeneração", "", "regenerar")
 }
 
+func TestDiagnosticoDosModelos(t *testing.T) {
+	s := testes.Novo(t, testes.Opcoes{})
+	modelos := "[modelos]\nurl = \"" + s.D.Config().Modelos.URL + "\"\n"
+	i := nova(t, modelos+"[ferramentas]\nisolamento = \"nenhum\"\nbinario = \""+ferramenta(t)+"\"\n")
+	i.quer(1, "a chave do OpenRouter não foi configurada", "", "diagnostico", "--modelos")
+	i.quer(0, "ok", "chave\n", "segredo", "definir", "openrouter")
+	saida := i.quer(0, "modelo forte", "", "diagnostico", "--modelos")
+	for _, quer := range []string{"ok    modelo barato", "ok    modelo principal", "ok    ferramentas do modelo", "ok    busca semântica"} {
+		if !strings.Contains(saida, quer) {
+			t.Errorf("falta %q em %s", quer, saida)
+		}
+	}
+	i.quer(2, "argumentos a mais", "", "diagnostico", "--modelos", "x")
+}
+
 func TestDiagnosticoDeFerramentasQuebradas(t *testing.T) {
 	i := nova(t, "[ferramentas]\nisolamento = \"nenhum\"\nbinario = \"/nao/existe\"\n")
 	i.quer(1, "FALHA ferramentas", "", "diagnostico")

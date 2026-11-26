@@ -110,7 +110,8 @@ func TestLimiteDePassos(t *testing.T) {
 		t.Errorf("%s %+v", x.Estado, fim)
 	}
 	pedidos := s.Modelo.Pedidos()
-	if len(pedidos) != 8 || len(pedidos[7].Ferram) != 0 || len(pedidos[0].Ferram) != 4 {
+	if len(pedidos) != 8 || len(pedidos[7].Ferram) != 4 || !strings.Contains(pedidos[7].Bruto, `"tool_choice":"none"`) ||
+		strings.Contains(pedidos[6].Bruto, "tool_choice") {
 		t.Error(len(pedidos))
 	}
 }

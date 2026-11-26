@@ -109,6 +109,21 @@ func num(n int64) string {
 	return string(b)
 }
 
+func TestEditalColadoNaoViraMaterial(t *testing.T) {
+	s := testes.Novo(t, testes.Opcoes{})
+	doc := s.Importar("edital.txt", "EDITAL\n\n"+edital+"\n")
+	apostila := s.Importar("apostila.txt", "Atos administrativos produzem efeitos. Licitações e direitos fundamentais.")
+	x := s.Criar("estudo", edital, "")
+	for _, a := range testes.Dados[estudo.Dados](t, x).Assuntos {
+		for _, id := range a.Trechos {
+			tr, err := s.D.Acervo.Trechos(s.Contexto, []int64{id})
+			if err != nil || tr[0].Documento == doc || tr[0].Documento != apostila {
+				t.Error(a.Titulo, tr, err)
+			}
+		}
+	}
+}
+
 func TestMaterialInvalidoEDescartado(t *testing.T) {
 	s := testes.Novo(t, testes.Opcoes{})
 	s.Importar("a.txt", "Redes de computadores ligam máquinas.")

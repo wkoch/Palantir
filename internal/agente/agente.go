@@ -169,10 +169,9 @@ func (a *Agente) Executar(ctx context.Context, p Pedido, anotar func(Item) error
 	for passo := 1; ; passo++ {
 		pedido := modelos.Pedido{Nivel: p.Nivel, Atividade: p.Atividade, Finalidade: p.Tipo,
 			Mensagens: Mensagens(p.Sistema, historico)}
-		// No último passo o modelo precisa concluir sem ferramentas.
-		if passo < passos {
-			pedido.Ferramentas = a.oferta(p.Tipo)
-		}
+		pedido.Ferramentas = a.oferta(p.Tipo)
+		// No último passo o modelo precisa concluir sem usar ferramentas.
+		pedido.SemChamadas = passo >= passos
 		resp, err := a.Modelos.Completar(ctx, pedido)
 		if err != nil {
 			return Resultado{}, err

@@ -46,6 +46,7 @@ class PlApp extends Elemento {
   declare estado: Estado | undefined;
 
   private proximaTorrada = 1;
+  private versao = "";
   private prefixo = 0;
 
   constructor() {
@@ -83,6 +84,10 @@ class PlApp extends Elemento {
   private async situacao() {
     try {
       this.estado = await api.obter<Estado>("/api/estado");
+      // Depois de uma atualização ou de voltar de versão, a interface antiga é
+      // recarregada: no kiosk não há botão de recarregar.
+      if (this.versao && this.versao !== this.estado.versao) location.reload();
+      this.versao = this.estado.versao;
     } catch {
       // A faixa de desconexão já avisa.
     }

@@ -24,6 +24,14 @@ test("importar por arquivo, arrastando, por pasta e pela pasta de entrada", asyn
   await page.dispatchEvent("body", "drop", { dataTransfer: dados });
   await expect(page.getByRole("link", { name: /seguro\.txt/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /estranho\.bin/ })).toContainText("erro");
+  // Um tipo que o navegador não exibe é oferecido para baixar.
+  await page.getByRole("link", { name: /estranho\.bin/ }).click();
+  const [arquivo] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Baixar o original" }).click(),
+  ]);
+  expect(arquivo.suggestedFilename()).toBe("estranho.bin");
+  await page.getByRole("link", { name: "← Acervo" }).click();
 
   await page.getByLabel("Pasta ou arquivo deste computador").fill(join(sistema.pasta, "exemplos"));
   await page.getByRole("button", { name: "Importar", exact: true }).click();
@@ -72,12 +80,11 @@ test("buscar, organizar, conferir, regenerar e exportar", async ({ page, sistema
   await expect(page.getByRole("log")).toContainText("Incluído na coleção");
   await expect(page.getByTitle("data").first()).toBeVisible();
 
-  const [original] = await Promise.all([
-    page.context().waitForEvent("page"),
-    page.getByRole("button", { name: "Abrir o original" }).click(),
-  ]);
+  await page.getByRole("button", { name: "Ver o original" }).click();
+  const original = page.frameLocator('iframe[title="Original de contrato-de-aluguel.txt"]');
   await expect(original.locator("body")).toContainText("CONTRATO DE ALUGUEL");
-  await original.close();
+  await page.getByRole("button", { name: "Fechar o original" }).click();
+  await expect(page.locator("iframe")).toHaveCount(0);
   await page.getByRole("button", { name: "Extrair novamente" }).click();
   await expect(page.locator("span.selo.pronto")).toBeVisible();
   await page.getByRole("link", { name: "← Acervo" }).click();

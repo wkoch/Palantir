@@ -222,7 +222,9 @@ export class PlAcervo extends Visao<Lista> {
             : nothing}
           <h2>Manutenção</h2>
           <div class="linha-flex">
-            <a href="/api/exportar" download><button type="button">Exportar tudo</button></a>
+            <a href="/api/exportar" download @click=${() => this.avisar("Exportação iniciada. No HP, o arquivo fica em ~/Palantir/Exportacoes.")}>
+              <button type="button">Exportar tudo</button>
+            </a>
             <button type="button" ?disabled=${this.trabalhando} @click=${() => this.manutencao("/api/acervo/verificar")}>Verificar originais</button>
             <button type="button" ?disabled=${this.trabalhando} @click=${() => this.manutencao("/api/acervo/regenerar")}>Regenerar derivados</button>
           </div>
@@ -235,9 +237,16 @@ customElements.define("pl-acervo", PlAcervo);
 
 /** Um documento: texto extraído, entidades, coleções e o original. */
 export class PlDocumento extends Visao<Aberto> {
-  static override properties = { ...Visao.properties, numero: { type: Number } };
+  static override properties = { ...Visao.properties, numero: { type: Number }, original: { state: true } };
 
   declare numero: number;
+  /** O original fica numa moldura da própria tela: no kiosk não há outra janela. */
+  declare original: boolean;
+
+  constructor() {
+    super();
+    this.original = false;
+  }
 
   protected override async buscar() {
     const [d, v] = await Promise.all([
@@ -252,7 +261,15 @@ export class PlDocumento extends Visao<Aberto> {
   }
 
   override willUpdate(mudou: PropertyValues<this>) {
-    if (mudou.has("numero") && mudou.get("numero") !== undefined) this.reiniciar();
+    if (mudou.has("numero") && mudou.get("numero") !== undefined) {
+      this.original = false;
+      this.reiniciar();
+    }
+  }
+
+  /** O navegador só exibe estes tipos; os outros vão para a pasta de downloads. */
+  private exibivel(tipo: string) {
+    return ["application/pdf", "image/png", "image/jpeg", "message/rfc822"].includes(tipo) || /^text\/(plain|markdown|csv|html)$/.test(tipo);
   }
 
   private async incluir(e: SubmitEvent) {
@@ -279,7 +296,11 @@ export class PlDocumento extends Visao<Aberto> {
       ${x.erro ? html`<div class="aviso">${x.erro}</div>` : nothing}
       ${x.resumo ? html`<p>${x.resumo}</p>` : nothing}
       <div class="linha-flex">
-        <a href="/api/acervo/documentos/${x.id}/original" target="_blank" rel="noopener"><button type="button">Abrir o original</button></a>
+        ${this.exibivel(x.tipo)
+          ? html`<button type="button" aria-pressed=${this.original} @click=${() => (this.original = !this.original)}>
+              ${this.original ? "Fechar o original" : "Ver o original"}
+            </button>`
+          : html`<a href="/api/acervo/documentos/${x.id}/original" download><button type="button">Baixar o original</button></a>`}
         <button type="button" @click=${() => this.tentar(() => api.enviar(`/api/acervo/documentos/${x.id}/reextrair`), "Extraindo novamente.")}>
           Extrair novamente
         </button>
@@ -292,6 +313,9 @@ export class PlDocumento extends Visao<Aberto> {
             </form>`
           : nothing}
       </div>
+      ${this.original
+        ? html`<iframe class="original" title="Original de ${x.nome}" src="/api/acervo/documentos/${x.id}/original"></iframe>`
+        : nothing}
       ${d.entidades.length
         ? html`<h2>Entidades</h2><div class="linha-flex">${d.entidades.map((e) => html`<span class="selo" title=${e.tipo}>${e.valor}</span>`)}</div>`
         : nothing}

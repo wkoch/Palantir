@@ -295,6 +295,8 @@ func Padrao(p PedidoRecebido) Resposta {
 		return material(p)
 	case "enriquecimento":
 		return enriquecer(p)
+	case "teste_de_conexao":
+		return Resposta{JSON: map[string]any{"ok": true}}
 	case "juiz":
 		return Resposta{JSON: map[string]any{"bloquear": false, "motivo": "compatível com o pedido (simulado)"}}
 	}
@@ -486,6 +488,9 @@ func conversar(p PedidoRecebido) Resposta {
 		return Resposta{Texto: s.String()}
 	}
 	baixo := strings.ToLower(texto)
+	if strings.Contains(baixo, "teste de ferramenta") && p.Oferece("teste_de_conexao") {
+		return Resposta{Chamadas: []Chamada{{"teste_de_conexao", map[string]any{"ok": true}}}}
+	}
 	// Um endereço que o usuário não citou: exercita a fila de confirmação.
 	if strings.Contains(baixo, "página sugerida") && p.Oferece("buscar_url") {
 		return Resposta{Chamadas: []Chamada{{"buscar_url", map[string]any{"url": EnderecoSugerido}}}}

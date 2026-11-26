@@ -415,6 +415,16 @@ func TestSemModeloOuComModeloRuim(t *testing.T) {
 	if achados, err := a.Buscar(ctx, 0, "aluguel", 5); err != nil || len(achados) != 1 {
 		t.Error("sem chave a busca textual continua", achados, err)
 	}
+	// Sem chave, as varreduras seguintes não repetem a tentativa nem enchem o diário.
+	antesDiario, _ := s.D.Diario.Ultimas(1000, 0)
+	for range 3 {
+		if err := a.Processar(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if depois, _ := s.D.Diario.Ultimas(1000, 0); len(depois) != len(antesDiario) {
+		t.Error("o diário cresceu sem nenhuma chamada:", len(depois)-len(antesDiario))
+	}
 	// Com a chave, os derivados que faltavam são criados.
 	if err := s.D.DefinirSegredo(ctx, segredos.OpenRouter, testes.Chave); err != nil {
 		t.Fatal(err)

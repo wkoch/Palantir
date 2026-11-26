@@ -228,11 +228,22 @@ func (e *Executor) extrairArvore(ctx context.Context, x atividades.Atividade, d 
 	return e.ligar(ctx, x.ID)
 }
 
+func normalizar(s string) string { return strings.ToLower(strings.Join(strings.Fields(s), " ")) }
+
+// minimoColado é o tamanho a partir do qual um texto colado identifica o edital.
+const minimoColado = 40
+
 // ligar associa cada subtópico a trechos do acervo, em código.
 func (e *Executor) ligar(ctx context.Context, id int64) error {
-	_, d, err := e.dados(ctx, id)
+	x, d, err := e.dados(ctx, id)
 	if err != nil {
 		return err
+	}
+	// Um edital colado que também está no acervo é reconhecido pelo texto.
+	colado := normalizar(x.Objetivo)
+	ehEdital := func(t acervo.Achado) bool {
+		return t.Documento == d.EditalDocumento ||
+			len(colado) >= minimoColado && strings.Contains(normalizar(t.Texto), colado)
 	}
 	ligacoes := map[int][]int64{}
 	for _, a := range d.Assuntos {
@@ -246,7 +257,7 @@ func (e *Executor) ligar(ctx context.Context, id int64) error {
 		ids := []int64{}
 		for _, x := range achados {
 			// O edital lista os assuntos, mas não ensina nenhum.
-			if x.Documento != d.EditalDocumento && len(ids) < trechosPorItem {
+			if !ehEdital(x) && len(ids) < trechosPorItem {
 				ids = append(ids, x.ID)
 			}
 		}

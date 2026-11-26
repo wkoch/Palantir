@@ -38,8 +38,16 @@ func (a *Acervo) Processar(ctx context.Context) error {
 		}
 		a.avisar()
 	}
+	if time.Now().UnixNano() < a.adiado.Load() {
+		return nil
+	}
 	return errors.Join(a.vetorizar(ctx), a.enriquecer(ctx))
 }
+
+// EsperaDosModelos é a pausa depois de o serviço de modelos falhar.
+const EsperaDosModelos = 5 * time.Minute
+
+func (a *Acervo) adiar() { a.adiado.Store(time.Now().Add(EsperaDosModelos).UnixNano()) }
 
 // extrair grava os trechos de um documento. Falhas do documento ficam
 // registradas nele; só erros do próprio sistema são devolvidos.
@@ -132,6 +140,7 @@ func (a *Acervo) vetorizar(ctx context.Context) error {
 		if err != nil {
 			// Sem modelo, a busca textual continua funcionando.
 			if atividades.Indisponivel(err) {
+				a.adiar()
 				return nil
 			}
 			return fmt.Errorf("vetorizar: %w", err)
@@ -192,6 +201,7 @@ func (a *Acervo) enriquecer(ctx context.Context) error {
 		switch {
 		case err == nil:
 		case atividades.Indisponivel(err):
+			a.adiar()
 			return nil
 		case errors.Is(err, modelos.ErrRespostaRuim):
 			// Não insiste num documento que o modelo não consegue catalogar.

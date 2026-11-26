@@ -99,6 +99,32 @@ test("reiniciar o daemon preserva as atividades e a interface reconecta", async 
   await expect(estado(page)).toHaveText("pronta");
 });
 
+test("a fila se atualiza sozinha quando algo muda no daemon", async ({ page, sistema }) => {
+  await abrir(page, sistema);
+  await expect(page.getByText("Nenhuma atividade ainda")).toBeVisible();
+  // Criada por fora da interface, como faria um trabalho em segundo plano.
+  const r = await fetch(`${sistema.url}/api/atividades`, {
+    method: "POST",
+    headers: { "X-Palantir": "1" },
+    body: JSON.stringify({ tipo: "conversa", objetivo: "Criada em segundo plano" }),
+  });
+  expect(r.ok).toBeTruthy();
+  await expect(page.getByRole("region", { name: "Pronto" }).getByRole("link", { name: /segundo plano/ })).toBeVisible();
+});
+
+test("a interface recarrega quando a versão do daemon muda", async ({ page, sistema }) => {
+  let versao = "v1";
+  await page.route("**/api/estado", async (rota) => {
+    const resposta = await rota.fetch();
+    await rota.fulfill({ response: resposta, json: { ...(await resposta.json()), versao } });
+  });
+  await abrir(page, sistema);
+  await page.evaluate(() => ((window as unknown as { marcada: boolean }).marcada = true));
+  versao = "v2";
+  await fetch(`${sistema.url}/api/segredos/imap`, { method: "DELETE", headers: { "X-Palantir": "1" } });
+  await expect.poll(() => page.evaluate(() => "marcada" in window).catch(() => true)).toBe(false);
+});
+
 test("atividade inexistente mostra o erro", async ({ page, sistema }) => {
   await abrir(page, sistema, "#/atividade/999");
   await expect(page.getByText("atividade não encontrada")).toBeVisible();

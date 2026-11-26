@@ -122,7 +122,9 @@ export class PlTriagem extends Elemento {
     const atual = this.atual();
     return html`
       <div class="linha-flex entre">
-        <p style="margin:0">${d.resumo}</p>
+        <p class="suave" style="margin:0">
+          ${d.mensagens.length} mensagem(ns)${d.atualizado_em && !d.atualizado_em.startsWith("0001") ? `, buscadas em ${quando(d.atualizado_em)}` : ""}
+        </p>
         <button type="button" ?disabled=${this.ocupada} @click=${() => this.atualizar()}>Buscar novas <kbd>r</kbd></button>
       </div>
       <p class="pequeno suave">

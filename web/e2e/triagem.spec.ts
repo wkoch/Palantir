@@ -6,7 +6,8 @@ test("triagem pelo teclado, com correções que valem na próxima busca", async 
   await expect(estado(page)).toHaveText("pronta");
   const lista = page.getByRole("listbox", { name: "Mensagens" });
   await expect(lista.getByRole("option")).toHaveCount(5);
-  await expect(page.getByText("1 urgente, 1 para responder, 1 para ler depois, 2 no lixo.").first()).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("1 urgente, 1 para responder, 1 para ler depois, 2 no lixo.");
+  await expect(page.getByText(/5 mensagem\(ns\), buscadas em/)).toBeVisible();
   const selecionada = lista.locator('[aria-selected="true"]');
   await expect(selecionada).toContainText("Fatura vence hoje");
 

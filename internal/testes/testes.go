@@ -80,6 +80,9 @@ type Opcoes struct {
 	Modelos  string
 	Config   string
 	Executor ferramentas.Executor
+	// URLModelos e Chave trocam o modelo simulado por um serviço real.
+	URLModelos string
+	Chave      string
 }
 
 // Sistema é um Palantír de teste.
@@ -129,6 +132,12 @@ func Novo(t testing.TB, o Opcoes) *Sistema {
 	s.Web = httptest.NewServer(simulador.Web(s.Correio))
 	t.Cleanup(s.Web.Close)
 
+	if o.URLModelos == "" {
+		o.URLModelos = modelo.URL + "/api/v1"
+	}
+	if o.Chave == "" {
+		o.Chave = Chave
+	}
 	dir := Pasta(t)
 	s.Caminhos, err = config.CaminhosPadrao(dir)
 	falhar(err)
@@ -136,7 +145,7 @@ func Novo(t testing.TB, o Opcoes) *Sistema {
 	cfg := `[servidor]
 endereco = "127.0.0.1:0"
 [modelos]
-url = "` + modelo.URL + `/api/v1"
+url = "` + o.URLModelos + `"
 ` + o.Modelos + `
 [ferramentas]
 isolamento = "nenhum"
@@ -155,7 +164,7 @@ intervalo_segundos = 3600
 	falhar(os.WriteFile(s.Caminhos.Arquivo(), []byte(cfg), 0o600))
 	cofre := segredos.Novo("arquivo", s.Caminhos.Segredos())
 	if !o.SemChave {
-		falhar(cofre.Definir(ctx, segredos.OpenRouter, Chave))
+		falhar(cofre.Definir(ctx, segredos.OpenRouter, o.Chave))
 	}
 	falhar(cofre.Definir(ctx, segredos.SenhaIMAP, simulador.Senha))
 

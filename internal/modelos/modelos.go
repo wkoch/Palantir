@@ -92,6 +92,9 @@ type Pedido struct {
 	Mensagens   []Mensagem
 	Ferramentas []Ferramenta
 	Esquema     *Esquema
+	// SemChamadas mantém as ferramentas declaradas, como o histórico exige, mas
+	// obriga uma resposta em texto.
+	SemChamadas bool
 	Cache       bool
 	MaxTokens   int
 }
@@ -137,7 +140,10 @@ type Roteador struct {
 	ultimo atomic.Value // Estado
 }
 
-const tentativas = 3
+const (
+	tentativas      = 3
+	maxTokensPadrao = 8000
+)
 
 // Preço usado quando o serviço não informa o custo. É alto de propósito, para
 // que o orçamento continue protegendo o usuário.
@@ -172,8 +178,9 @@ func (r *Roteador) modelo(n Nivel) (string, error) {
 }
 
 type fioMensagem struct {
-	Papel     string        `json:"role"`
-	Conteudo  string        `json:"content"`
+	Papel string `json:"role"`
+	// Conteudo é nulo quando a mensagem só carrega chamadas de ferramenta.
+	Conteudo  *string       `json:"content"`
 	Chamadas  []fioToolCall `json:"tool_calls,omitempty"`
 	ChamadaID string        `json:"tool_call_id,omitempty"`
 }
@@ -190,7 +197,10 @@ type fioToolCall struct {
 func corpoDaCompletacao(modelo string, p Pedido) ([]byte, error) {
 	msgs := make([]fioMensagem, len(p.Mensagens))
 	for i, m := range p.Mensagens {
-		msgs[i] = fioMensagem{Papel: m.Papel, Conteudo: m.Conteudo, ChamadaID: m.ChamadaID}
+		msgs[i] = fioMensagem{Papel: m.Papel, ChamadaID: m.ChamadaID}
+		if m.Conteudo != "" || len(m.Chamadas) == 0 {
+			msgs[i].Conteudo = &m.Conteudo
+		}
 		for _, c := range m.Chamadas {
 			tc := fioToolCall{ID: c.ID, Tipo: "function"}
 			tc.Funcao.Nome, tc.Funcao.Argumentos = c.Nome, c.Argumentos
@@ -202,6 +212,7 @@ func corpoDaCompletacao(modelo string, p Pedido) ([]byte, error) {
 		"messages": msgs,
 		"usage":    map[string]any{"include": true},
 	}
+	corpo["max_tokens"] = maxTokensPadrao
 	if p.MaxTokens > 0 {
 		corpo["max_tokens"] = p.MaxTokens
 	}
@@ -213,6 +224,9 @@ func corpoDaCompletacao(modelo string, p Pedido) ([]byte, error) {
 			}}
 		}
 		corpo["tools"] = fs
+		if p.SemChamadas {
+			corpo["tool_choice"] = "none"
+		}
 	}
 	if p.Esquema != nil {
 		corpo["response_format"] = map[string]any{"type": "json_schema", "json_schema": map[string]any{
@@ -365,7 +379,8 @@ func (r *Roteador) contabilizar(ctx context.Context, atividade int64, finalidade
 // enviar faz o POST com verificação de orçamento e novas tentativas.
 func (r *Roteador) enviar(ctx context.Context, atividade int64, finalidade, rota string, corpo []byte, destino any) (err error) {
 	defer func() {
-		if err != nil {
+		// Falta de chave ou de crédito não é uma chamada: não enche o diário.
+		if err != nil && !errors.Is(err, ErrSemChave) && !errors.Is(err, orcamento.ErrEsgotado) {
 			_ = r.Diario.Registrar(diario.Entrada{Atividade: atividade, Tipo: "modelo", Nome: rota,
 				Decisao: "erro", Motivo: finalidade, Detalhe: err.Error()})
 		}
