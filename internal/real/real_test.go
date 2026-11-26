@@ -324,3 +324,8 @@ func TestEstudo(t *testing.T) {
 		t.Error("sem material de estudo")
 	}
 }
+
+func conversaDe(t *testing.T, x atividades.Atividade) []agente.Item {
+	t.Helper()
+	return testes.Dados[conversa.Dados](t, x).Itens
+}

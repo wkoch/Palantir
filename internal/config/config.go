@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -118,6 +119,13 @@ type Config struct {
 	IMAP        IMAP        `toml:"imap" json:"imap"`
 	Acervo      Acervo      `toml:"acervo" json:"acervo"`
 	Segredos    Segredos    `toml:"segredos" json:"segredos"`
+	Busca       Busca       `toml:"busca" json:"busca"`
+}
+
+// Busca configura o mecanismo de pesquisa usado pela IA, um SearXNG.
+type Busca struct {
+	// URL é a base do SearXNG; vazia desliga a pesquisa.
+	URL string `toml:"url" json:"url"`
 }
 
 // Servidor configura a interface HTTP local.
@@ -221,6 +229,12 @@ func (c Config) Validar() error {
 	}
 	if !EnderecoLocal(host) {
 		return fmt.Errorf("servidor.endereco: %q não é um endereço local", host)
+	}
+	if c.Busca.URL != "" {
+		u, err := url.Parse(c.Busca.URL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil {
+			return fmt.Errorf("busca.url: %q não é um endereço http válido", c.Busca.URL)
+		}
 	}
 	if c.Orcamento.MensalUSD < 0 || c.Orcamento.PorAtividadeUSD < 0 {
 		return errors.New("orcamento: os limites não podem ser negativos")

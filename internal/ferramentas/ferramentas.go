@@ -34,6 +34,7 @@ const (
 const (
 	EnvProxy   = "PALANTIR_PROXY"
 	EnvEntrada = "PALANTIR_ENTRADA"
+	EnvBusca   = "PALANTIR_BUSCA"
 )
 
 // Execucao descreve o que uma sessão de ferramenta recebe. Nada além disso fica

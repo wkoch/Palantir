@@ -43,7 +43,7 @@ Importe a pasta `/tmp/palantir-demo/exemplos` na tela Acervo.
 | Tela | O que faz |
 | --- | --- |
 | Fila | O que precisa de você, o que ficou pronto, o que está em andamento e quanto cada atividade custou |
-| Conversa | Perguntas sobre o acervo e páginas da web, com citações e a origem de cada texto |
+| Conversa | Perguntas sobre o acervo, pesquisa e páginas da web, com citações e a origem de cada texto |
 | Relatório | Plano, pesquisa e redação com fontes; correção seção a seção; versão aprovada volta para o acervo |
 | Triagem de e-mail | Classifica e etiqueta pelo teclado; as correções viram preferências. Não envia nem apaga nada |
 | Estudo | Árvore do edital, questões, cartões com repetição espaçada e desempenho; revisa sem rede |

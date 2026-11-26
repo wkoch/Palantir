@@ -57,7 +57,21 @@ A decisão é código ([politica.go](../internal/politica/politica.go)). Só o q
 | Host liberado nos ajustes | permite | permite |
 | Host citado pelo usuário, outro endereço | permite | pede confirmação |
 | Host que o usuário não citou | pede confirmação | **bloqueia** |
+| Endereço exato devolvido por uma pesquisa | permite | permite |
 | IP, `localhost`, credenciais no endereço, porta incomum | bloqueia | bloqueia |
+
+## Pesquisa na web
+
+Uma consulta é um dado que sai da máquina: ela chega aos buscadores que o SearXNG consulta.
+
+| Situação | Decisão |
+| --- | --- |
+| Sem conteúdo externo na atividade | permite |
+| Só palavras que você escreveu (e preposições) | permite |
+| Palavras novas, com conteúdo externo na atividade | pede confirmação, mostrando a consulta |
+| Vazia ou com mais de 300 caracteres | bloqueia |
+
+Um achado pode ser lido sem confirmação porque o endereço já existia no buscador: o modelo não o montou, e um parâmetro acrescentado o torna outro endereço. No relatório, as consultas vêm do plano, feito antes de qualquer conteúdo externo, ou dos seus comentários.
 
 O proxy repete a conferência por conta própria, resolve o nome ele mesmo, recusa endereços locais ou privados e conecta ao IP resolvido.
 

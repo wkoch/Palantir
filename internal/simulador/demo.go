@@ -48,6 +48,9 @@ intervalo_segundos = 2
 
 [segredos]
 armazenamento = "arquivo"
+
+[busca]
+url = "http://{{.Web}}"
 `))
 
 // Executar prepara uma instalação de demonstração e mantém os serviços
@@ -117,7 +120,7 @@ func Executar(ctx context.Context, args []string, saida io.Writer, pronto func()
 	var buf bytes.Buffer
 	if err := configDemo.Execute(&buf, map[string]any{
 		"Endereco": *endereco, "Modelo": modelo, "PortaIMAP": strconv.Itoa(correio.Porta()), "Usuario": Usuario,
-		"Isolamento": *isolamento, "Binario": bin, "Locais": true, "Entrada": filepath.Join(raiz, "Entrada"),
+		"Isolamento": *isolamento, "Binario": bin, "Web": web, "Locais": true, "Entrada": filepath.Join(raiz, "Entrada"),
 	}); err != nil {
 		return err
 	}
@@ -150,14 +153,16 @@ func Executar(ctx context.Context, args []string, saida io.Writer, pronto func()
 	}
 	fmt.Fprintf(saida, `Simulação no ar. Em outro terminal:
 
-  palantird --dir %s
+  palantird --dir %[1]s
 
-Depois abra http://%s
+E, num terceiro, abra a interface em http://%[2]s:
 
-Documentos de exemplo: %s
-Página de exemplo:     http://%s/pagina
-E-mail novo:           curl -X POST http://%s/entregar
-`, raiz, *endereco, exemplos, web, web)
+  palantird --dir %[1]s abrir
+
+Documentos de exemplo: %[3]s
+Página de exemplo:     http://%[4]s/pagina
+E-mail novo:           curl -X POST http://%[4]s/entregar
+`, raiz, *endereco, exemplos, web)
 	if pronto != nil {
 		pronto()
 	}

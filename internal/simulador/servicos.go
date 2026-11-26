@@ -3,6 +3,7 @@ package simulador
 import (
 	"crypto/tls"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -115,6 +116,12 @@ const PaginaWeb = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"
 func Web(correio *Correio) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/search":
+			// Um SearXNG de mentira, com a página de exemplo como único achado.
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"results": []any{map[string]any{
+				"url": "http://" + r.Host + "/pagina", "title": "Prazos de exemplo",
+				"content": "Resultado para " + umaLinha(r.URL.Query().Get("q")) + ": o prazo para recurso é de dez dias."}}})
 		case r.Method == http.MethodGet && r.URL.Path == "/pagina":
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			_, _ = io.WriteString(w, PaginaWeb)

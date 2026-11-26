@@ -74,7 +74,7 @@ As ferramentas MCP estão no binário `palantir-tool`, com três servidores:
 
 | Servidor | Ferramentas | Rede |
 | --- | --- | --- |
-| `web` | `buscar_url` | Proxy, nos hosts liberados e no host da chamada autorizada |
+| `web` | `buscar_url`, `pesquisar` | Proxy, nos hosts liberados e no host da chamada autorizada; o SearXNG só durante a pesquisa |
 | `imap` | `buscar`, `ler`, `etiquetar` | Proxy, somente o servidor e a porta configurados |
 | `extrair` | `extrair` | Nenhuma; recebe um único original, só para leitura |
 

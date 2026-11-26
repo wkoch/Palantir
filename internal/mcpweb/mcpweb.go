@@ -46,6 +46,8 @@ type Pagina struct {
 type Opcoes struct {
 	Socket   string
 	Extrator extrator.Extrator
+	// Busca é a base do SearXNG; vazia desliga "pesquisar".
+	Busca string
 	// TLS substitui a configuração de certificados (testes).
 	TLS *tls.Config
 }
@@ -169,6 +171,11 @@ func Novo(o Opcoes) *mcp.Server {
 		func(ctx context.Context, _ *mcp.CallToolRequest, in Entrada) (*mcp.CallToolResult, Pagina, error) {
 			p, err := Buscar(ctx, o, in.URL)
 			return nil, p, err
+		})
+	mcp.AddTool(s, &mcp.Tool{Name: "pesquisar", Description: "Pesquisa na web e devolve títulos, endereços e trechos."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, in Consulta) (*mcp.CallToolResult, Resultados, error) {
+			r, err := Pesquisar(ctx, o, in.Consulta)
+			return nil, r, err
 		})
 	return s
 }

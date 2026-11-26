@@ -42,7 +42,7 @@ Os testes Go usam o daemon, o proxy e as ferramentas MCP reais, ligados em memó
 PALANTIR_REAL=1 PALANTIR_OPENROUTER_KEY=... go test -count=1 -v ./internal/real/
 ```
 
-Roda triagem, juiz, conversa com acervo e página, relatório e estudo contra os modelos reais, com dados inventados, e mostra quem atendeu cada chamada e quanto custou (menos de US$ 0,10). Falha o que o produto garante; a qualidade é para ler na saída. Nunca use documentos ou e-mails verdadeiros aqui.
+Roda triagem, juiz, conversa com acervo e página, relatório e estudo contra os modelos reais, com dados inventados, e mostra quem atendeu cada chamada e quanto custou (menos de US$ 0,10). Falha o que o produto garante; a qualidade é para ler na saída. Nunca use documentos ou e-mails verdadeiros aqui. Com `PALANTIR_BUSCA_URL` apontando para um SearXNG configurado como o de `deploy/busca`, a pesquisa na web também é provada.
 
 ```bash
 scripts/testar-conteiner.sh

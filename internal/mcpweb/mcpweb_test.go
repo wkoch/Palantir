@@ -15,8 +15,6 @@ import (
 	"github.com/wkoch/Palantir/internal/extrator"
 	"github.com/wkoch/Palantir/internal/ferramentas"
 	"github.com/wkoch/Palantir/internal/mcpweb"
-	"github.com/wkoch/Palantir/internal/proxy"
-	"github.com/wkoch/Palantir/internal/testes"
 )
 
 // montar liga a ferramenta a um proxy que libera o servidor de teste.
@@ -24,14 +22,7 @@ func montar(t *testing.T, srv *httptest.Server) mcpweb.Opcoes {
 	t.Helper()
 	u, _ := url.Parse(srv.URL)
 	porta, _ := strconv.Atoi(u.Port())
-	p := &proxy.Proxy{Ferramenta: "web", Fixas: func() []proxy.Regra {
-		return []proxy.Regra{{Host: "127.0.0.1", Portas: []int{porta}, Local: true}}
-	}}
-	socket := filepath.Join(testes.Pasta(t), "s")
-	if err := p.Escutar(socket); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { p.Fechar() })
+	socket := socketLocal(t, porta)
 	pdftotext := filepath.Join(t.TempDir(), "pdftotext")
 	if err := os.WriteFile(pdftotext, []byte("#!/bin/sh\nprintf 'texto da primeira pagina do edital\\fsegunda pagina com mais texto\\f'\n"), 0o700); err != nil {
 		t.Fatal(err)

@@ -41,6 +41,8 @@ type Saida struct {
 	Fonte    string
 	Citacoes []Citacao
 	Quadro   *Quadro
+	// Achados são os endereços devolvidos por uma pesquisa.
+	Achados []string
 }
 
 // Ferramenta é uma capacidade oferecida ao modelo.
@@ -49,6 +51,8 @@ type Ferramenta struct {
 	Descricao string
 	Esquema   json.RawMessage
 	Executar  func(ctx context.Context, atividade int64, args json.RawMessage) (Saida, error)
+	// Disponivel, se definido, esconde a ferramenta enquanto devolver falso.
+	Disponivel func() bool
 }
 
 // Item é uma entrada do histórico de uma atividade, com a sua origem.
@@ -63,6 +67,7 @@ type Item struct {
 	Fonte     string              `json:"fonte,omitempty"`
 	Citacoes  []Citacao           `json:"citacoes,omitempty"`
 	Quadro    *Quadro             `json:"quadro,omitempty"`
+	Achados   []string            `json:"achados,omitempty"`
 	Bloqueado bool                `json:"bloqueado,omitempty"`
 }
 
@@ -148,7 +153,7 @@ func Mensagens(sistema string, historico []Item) []modelos.Mensagem {
 func (a *Agente) oferta(tipo string) []modelos.Ferramenta {
 	var lista []modelos.Ferramenta
 	for _, nome := range politica.Permissoes(tipo) {
-		if f, ok := a.Ferramentas[nome]; ok {
+		if f, ok := a.Ferramentas[nome]; ok && (f.Disponivel == nil || f.Disponivel()) {
 			lista = append(lista, modelos.Ferramenta{Nome: f.Nome, Descricao: f.Descricao, Esquema: f.Esquema})
 		}
 	}
@@ -228,12 +233,20 @@ func citadas(texto string, historico []Item) []Citacao {
 	return lista
 }
 
-func argumentoURL(args string) string {
-	var v struct {
-		URL string `json:"url"`
-	}
+func argumento(args, nome string) string {
+	var v map[string]any
 	_ = json.Unmarshal([]byte(args), &v)
-	return v.URL
+	s, _ := v[nome].(string)
+	return s
+}
+
+// achados são os endereços que as pesquisas desta atividade devolveram.
+func achados(historico []Item) []string {
+	var lista []string
+	for _, it := range historico {
+		lista = append(lista, it.Achados...)
+	}
+	return lista
 }
 
 // atender decide e executa uma chamada, sempre devolvendo o item de resultado.
@@ -251,7 +264,8 @@ func (a *Agente) atender(ctx context.Context, p Pedido, c modelos.Chamada, histo
 	}
 
 	usuario, externos := textos(historico)
-	decisao := politica.Avaliar(politica.Pedido{Tipo: p.Tipo, Ferramenta: c.Nome, URL: argumentoURL(c.Argumentos),
+	decisao := politica.Avaliar(politica.Pedido{Tipo: p.Tipo, Ferramenta: c.Nome, URL: argumento(c.Argumentos, "url"),
+		Consulta: argumento(c.Argumentos, "consulta"), Achados: achados(historico),
 		TextosUsuario: usuario, TextosExternos: externos, HostsLiberados: a.hosts()})
 	f, existe := a.Ferramentas[c.Nome]
 	if decisao.Veredito != politica.Bloquear && !existe {
@@ -298,6 +312,7 @@ func (a *Agente) atender(ctx context.Context, p Pedido, c modelos.Chamada, histo
 
 func preencher(item *Item, s Saida) {
 	item.Origem, item.Conteudo, item.Citacoes, item.Quadro = s.Origem, s.Texto, s.Citacoes, s.Quadro
+	item.Achados = s.Achados
 	if s.Fonte != "" {
 		item.Fonte = s.Fonte
 	}

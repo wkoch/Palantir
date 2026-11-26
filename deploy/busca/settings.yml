@@ -1,0 +1,17 @@
+# SearXNG do Palantír: pesquisa para a IA, acessível só por esta máquina.
+use_default_settings: true
+general:
+  instance_name: "Palantír"
+  enable_metrics: false
+server:
+  # Substituído por um valor aleatório na instalação.
+  secret_key: "@SEGREDO@"
+  # Sem limitador: o único cliente é o daemon, na própria máquina.
+  limiter: false
+  image_proxy: false
+search:
+  safe_search: 1
+  default_lang: "pt-BR"
+  formats:
+    - html
+    - json

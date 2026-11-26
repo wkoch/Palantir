@@ -548,6 +548,9 @@ func conversar(p PedidoRecebido) Resposta {
 		}
 		return Resposta{Chamadas: []Chamada{{"mostrar_tela", map[string]any{"tela": tela, "dados_json": dados}}}}
 	}
+	if strings.Contains(baixo, "pesquise") && p.Oferece("pesquisar_web") {
+		return Resposta{Chamadas: []Chamada{{"pesquisar_web", map[string]any{"consulta": strings.TrimSpace(strings.TrimPrefix(baixo, "pesquise"))}}}}
+	}
 	if (strings.Contains(texto, "?") || strings.Contains(baixo, "acervo") || strings.Contains(baixo, "sobre")) && p.Oferece("buscar_acervo") {
 		return Resposta{Chamadas: []Chamada{{"buscar_acervo", map[string]any{"consulta": texto}}}}
 	}

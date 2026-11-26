@@ -48,6 +48,7 @@ test("relatório pergunta, escreve com fontes, corrige uma seção e é aprovado
 });
 
 test("endereço bloqueado ou inacessível vira aviso na seção", async ({ page, sistema }) => {
+  await sistema.semBusca();
   await abrir(page, sistema);
   await criar(page, "Relatório", `Prazos. Veja ${sistema.web}/nao-existe`);
   await expect(estado(page)).toHaveText("pronta");

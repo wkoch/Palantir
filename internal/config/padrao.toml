@@ -48,6 +48,10 @@ permitir_enderecos_locais = false
 # Hosts que a pesquisa pode acessar sem confirmação.
 hosts = ["pt.wikipedia.org", "www.planalto.gov.br", "www.gov.br"]
 
+[busca]
+# O SearXNG desta máquina, usado pela IA para pesquisar. Vazio desliga.
+url = "http://127.0.0.1:8888"
+
 [imap]
 servidor = ""
 porta = 993

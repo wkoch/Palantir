@@ -92,3 +92,16 @@ test("endereço sugerido pelo modelo espera o clique do usuário", async ({ page
   await expect(estado(page)).toHaveText("pronta");
   expect((await sistema.diario()).some((e) => e.tipo === "confirmacao" && e.decisao === "aprovada")).toBe(true);
 });
+
+test("pesquisa na web traz fontes que abrem o site", async ({ context, page, sistema }) => {
+  await abrir(page, sistema);
+  await criar(page, "Conversa", "Pesquise prazos de recurso");
+  await expect(estado(page)).toHaveText("pronta");
+  const achados = page.locator('[data-origem="ferramenta"]');
+  await expect(achados).toContainText("pesquisa na web");
+  const [aba] = await Promise.all([
+    context.waitForEvent("page"),
+    page.locator(".citacao").first().click(),
+  ]);
+  await expect(aba.locator("body")).toContainText("dez dias corridos");
+});

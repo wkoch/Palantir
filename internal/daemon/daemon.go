@@ -158,7 +158,8 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 	d.Gerente = atividades.NovoGerente(d.Armazem, 4, func() float64 { return d.Config().Orcamento.PorAtividadeUSD })
 	d.Gerente.Log = d.Log
 
-	web := &capacidades.Web{Executor: executor, Proxy: proxyWeb, Socket: d.socket(ferramentas.Web)}
+	web := &capacidades.Web{Executor: executor, Proxy: proxyWeb, Socket: d.socket(ferramentas.Web),
+		Busca: func() string { return d.Config().Busca.URL }}
 	hosts := func() []string { return d.Config().Ferramentas.Web.Hosts }
 	ag := &agente.Agente{Modelos: d.Roteador, Decisor: d.Roteador, Confirmacoes: d.Confirmacoes, Diario: d.Diario,
 		HostsLiberados: hosts, Juiz: func() bool { return d.Config().Modelos.Juiz },

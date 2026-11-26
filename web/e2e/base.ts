@@ -2,7 +2,7 @@
 // pasta temporária, com portas livres.
 import { test as base, expect, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -76,6 +76,15 @@ export class Sistema {
   api(rota: string, opcoes: RequestInit = {}) {
     const cabecalhos = { "X-Palantir": "1", Authorization: `Bearer ${this.chave}`, ...(opcoes.headers as object) };
     return fetch(`${this.url}${rota}`, { ...opcoes, headers: cabecalhos });
+  }
+
+  /** Reinicia o daemon sem mecanismo de busca. */
+  async semBusca() {
+    await this.desligar();
+    const arquivo = join(this.pasta, "config", "config.toml");
+    const config = await readFile(arquivo, "utf8");
+    await writeFile(arquivo, config.replace(/(\[busca\]\nurl = ).*/, '$1""'));
+    await this.ligar();
   }
 
   async desligar() {

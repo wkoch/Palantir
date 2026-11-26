@@ -15,9 +15,6 @@ Itens que dependem de uma decisão ou de uma prova sua. Em cada um há o comport
 ### Custo da conversa
 O jev-router tem mandado a conversa com ferramentas ao Claude Opus 5.5 (cerca de US$ 0,01 por resposta nos testes). Se pesar, fixe um modelo mais barato no nível `principal` ou peça um limite ao roteador.
 
-### Pesquisa na web
-Não há mecanismo de busca: a pesquisa lê endereços que você informa, hosts liberados e, com a sua confirmação, os sugeridos pelo modelo. Integrar uma API de busca (paga ou uma instância SearXNG) é uma decisão sua. A lista inicial de hosts é `pt.wikipedia.org`, `www.planalto.gov.br` e `www.gov.br`.
-
 ### Cópia de segurança
 Há exportação manual, mas nenhuma cópia automática. Para o acervo real, vale definir destino (pendrive, outro computador, nuvem) e frequência.
 

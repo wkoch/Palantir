@@ -19,7 +19,8 @@ func Novo(nome string, obter func(string) string) (*mcp.Server, error) {
 	socket := obter(ferramentas.EnvProxy)
 	switch nome {
 	case ferramentas.Web:
-		return mcpweb.Novo(mcpweb.Opcoes{Socket: socket, Extrator: extrator.Padrao()}), nil
+		return mcpweb.Novo(mcpweb.Opcoes{Socket: socket, Extrator: extrator.Padrao(),
+			Busca: obter(ferramentas.EnvBusca)}), nil
 	case ferramentas.IMAP:
 		o, err := mcpimap.DoAmbiente(obter, socket)
 		if err != nil {

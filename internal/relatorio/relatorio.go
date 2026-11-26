@@ -291,6 +291,7 @@ func (e *Executor) planejar(ctx context.Context, x atividades.Atividade, d Dados
 
 const (
 	maxFontesPorSecao = 14
+	maxFontesDaWeb    = 6
 	maxTextoDaFonte   = 3000
 )
 
@@ -342,16 +343,24 @@ func (e *Executor) pesquisar(ctx context.Context, x atividades.Atividade, d Dado
 	for _, f := range fontes {
 		externos = append(externos, f.Texto)
 	}
+	achados, doBuscador, err := e.pesquisarNaWeb(ctx, x, d, s, buscas)
+	if err != nil {
+		return nil, nil, err
+	}
+	avisos = append(avisos, doBuscador.avisos...)
+	// Os endereços do plano e do pedido vêm antes; os da pesquisa completam.
+	urls = append(urls, achados...)
+
 	lidas := map[string]bool{}
 	for _, u := range urls {
-		if lidas[u] || len(daWeb) >= 6 || e.Web == nil {
+		if lidas[u] || len(daWeb) >= maxFontesDaWeb || e.Web == nil {
 			continue
 		}
 		lidas[u] = true
 		// Os endereços sugeridos pelo plano passam pelas regras como se o contexto
 		// ainda estivesse limpo, pois o plano foi feito sem conteúdo externo.
 		decisao := politica.Avaliar(politica.Pedido{Tipo: politica.Relatorio, Ferramenta: politica.BuscarURL, URL: u,
-			TextosUsuario: textosDoUsuario(x, d), HostsLiberados: e.hosts()})
+			TextosUsuario: textosDoUsuario(x, d), HostsLiberados: e.hosts(), Achados: achados})
 		if err := e.Diario.Registrar(diario.Entrada{Atividade: x.ID, Tipo: "ferramenta", Nome: politica.BuscarURL,
 			Origem: string(proveniencia.Modelo), Decisao: string(decisao.Veredito),
 			Motivo: strings.Join(decisao.Motivos, "; "), Detalhe: u}); err != nil {
@@ -387,6 +396,19 @@ func (e *Executor) pesquisar(ctx context.Context, x atividades.Atividade, d Dado
 				titulo = p.URL
 			}
 			daWeb = append(daWeb, Fonte{Tipo: "url", Titulo: titulo, URL: p.URL, Texto: cortar(p.Texto, 3*maxTextoDaFonte)})
+		}
+	}
+	// O trecho do buscador vale como fonte para o que não foi lido por inteiro.
+	obtidas := map[string]bool{}
+	for _, f := range daWeb {
+		obtidas[f.URL] = true
+	}
+	for _, f := range doBuscador.fontes {
+		if len(daWeb) >= maxFontesDaWeb {
+			break
+		}
+		if !obtidas[f.URL] {
+			daWeb = append(daWeb, f)
 		}
 	}
 	if sobra := maxFontesPorSecao - len(daWeb); len(fontes) > sobra {

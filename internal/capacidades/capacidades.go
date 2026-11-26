@@ -30,6 +30,39 @@ type Web struct {
 	Executor ferramentas.Executor
 	Proxy    *proxy.Proxy
 	Socket   string
+	// Busca devolve a base do SearXNG; vazia desliga a pesquisa.
+	Busca func() string
+}
+
+// Pesquisa informa se há um mecanismo de busca configurado.
+func (w *Web) Pesquisa() bool { return w != nil && w.Busca != nil && w.Busca() != "" }
+
+// Pesquisar consulta o mecanismo de busca. A política já deve ter autorizado a
+// consulta. O proxy só alcança o mecanismo durante a chamada.
+func (w *Web) Pesquisar(ctx context.Context, consulta string) (mcpweb.Resultados, error) {
+	var r mcpweb.Resultados
+	if !w.Pesquisa() {
+		return r, errors.New("a pesquisa na web não está configurada")
+	}
+	base := w.Busca()
+	u, err := mcpweb.ValidarURL(base)
+	if err != nil {
+		return r, err
+	}
+	porta := 80
+	if u.Scheme == "https" {
+		porta = 443
+	}
+	if u.Port() != "" {
+		if porta, err = strconv.Atoi(u.Port()); err != nil {
+			return r, err
+		}
+	}
+	revogar := w.Proxy.Conceder(proxy.Regra{Host: u.Hostname(), Portas: []int{porta}, Local: true})
+	defer revogar()
+	err = ferramentas.Chamar(ctx, w.Executor, ferramentas.Execucao{Servidor: ferramentas.Web, ProxySocket: w.Socket,
+		Env: map[string]string{ferramentas.EnvBusca: base}}, "pesquisar", mcpweb.Consulta{Consulta: consulta}, &r)
+	return r, err
 }
 
 // Marca devolve a etiqueta de citação estável de um endereço.
@@ -196,6 +229,38 @@ func Ferramentas(a *acervo.Acervo, w *Web) map[string]agente.Ferramenta {
 				}
 				return agente.Saida{Origem: proveniencia.Ferramenta, Fonte: p.URL, Texto: texto,
 					Citacoes: []agente.Citacao{{Marca: marca, Titulo: titulo, URL: p.URL}}}, nil
+			},
+		},
+		{
+			Nome: politica.PesquisarWeb,
+			Descricao: "Pesquisa na web. Devolve títulos, endereços e trechos; leia uma página com buscar_url. " +
+				"Cite com a marca de cada resultado. Não coloque dados pessoais do usuário na consulta.",
+			Esquema:    esquema.JSON(esquema.Objeto(map[string]any{"consulta": esquema.Texto})),
+			Disponivel: w.Pesquisa,
+			Executar: func(ctx context.Context, _ int64, args json.RawMessage) (agente.Saida, error) {
+				in, err := decodificar[struct {
+					Consulta string `json:"consulta"`
+				}](args)
+				if err != nil {
+					return agente.Saida{}, err
+				}
+				r, err := w.Pesquisar(ctx, in.Consulta)
+				if err != nil {
+					return agente.Saida{}, err
+				}
+				if len(r.Itens) == 0 {
+					return agente.Saida{Origem: proveniencia.Sistema, Texto: "A pesquisa não encontrou nada."}, nil
+				}
+				var b strings.Builder
+				saida := agente.Saida{Origem: proveniencia.Ferramenta, Fonte: "pesquisa na web"}
+				for _, it := range r.Itens {
+					marca := Marca(it.URL)
+					fmt.Fprintf(&b, "[%s] %s\n%s\n%s\n\n", marca, it.Titulo, it.URL, it.Trecho)
+					saida.Citacoes = append(saida.Citacoes, agente.Citacao{Marca: marca, Titulo: it.Titulo, URL: it.URL})
+					saida.Achados = append(saida.Achados, it.URL)
+				}
+				saida.Texto = strings.TrimSpace(b.String())
+				return saida, nil
 			},
 		},
 		ferramentaTela(),

@@ -25,6 +25,7 @@ const (
 	BuscarAcervo   = "buscar_acervo"
 	LerDocumento   = "ler_documento"
 	BuscarURL      = "buscar_url"
+	PesquisarWeb   = "pesquisar_web"
 	MostrarTela    = "mostrar_tela"
 	EmailBuscar    = "email_buscar"
 	EmailLer       = "email_ler"
@@ -41,8 +42,8 @@ const (
 
 // permissoes é fixa no código: nem o modelo nem o conteúdo externo a alteram.
 var permissoes = map[string][]string{
-	Conversa:  {BuscarAcervo, LerDocumento, BuscarURL, MostrarTela},
-	Relatorio: {BuscarAcervo, BuscarURL},
+	Conversa:  {BuscarAcervo, LerDocumento, BuscarURL, PesquisarWeb, MostrarTela},
+	Relatorio: {BuscarAcervo, BuscarURL, PesquisarWeb},
 	Triagem:   {EmailBuscar, EmailLer, EmailEtiquetar},
 	Estudo:    {BuscarAcervo, LerDocumento},
 }
@@ -64,6 +65,10 @@ type Pedido struct {
 	Ferramenta string
 	// URL é o endereço pedido, para ferramentas que acessam a rede.
 	URL string
+	// Consulta é o texto de uma pesquisa na web.
+	Consulta string
+	// Achados são endereços devolvidos por pesquisas já feitas.
+	Achados []string
 	// TextosUsuario é o que o usuário escreveu: a única fonte de autorização.
 	TextosUsuario []string
 	// TextosExternos é o conteúdo de fora que já entrou no contexto.
@@ -152,6 +157,9 @@ func Avaliar(p Pedido) Decisao {
 	if !slices.Contains(permissoes[p.Tipo], p.Ferramenta) {
 		return decisao(Bloquear, "a ferramenta "+p.Ferramenta+" não faz parte das permissões desta atividade")
 	}
+	if p.Ferramenta == PesquisarWeb {
+		return avaliarConsulta(p)
+	}
 	if p.Ferramenta != BuscarURL {
 		return decisao(Permitir)
 	}
@@ -162,8 +170,11 @@ func Avaliar(p Pedido) Decisao {
 	if u.User != nil {
 		return decisao(Bloquear, "credenciais no endereço não são aceitas")
 	}
+	// O endereço já existia no mecanismo de busca: o modelo não o montou.
+	alvo := canonica(p.URL)
+	achado := slices.ContainsFunc(p.Achados, func(a string) bool { return canonica(a) == alvo })
 	if porta := u.Port(); porta != "" && porta != "80" && porta != "443" {
-		if !citaURL(p.TextosUsuario, p.URL) {
+		if !achado && !citaURL(p.TextosUsuario, p.URL) {
 			return decisao(Bloquear, "porta fora do padrão em endereço que você não digitou")
 		}
 	}
@@ -177,6 +188,10 @@ func Avaliar(p Pedido) Decisao {
 	}
 	if liberado {
 		return decisao(Permitir, "host liberado nos ajustes")
+	}
+	// Um achado não pode carregar dados seus.
+	if achado {
+		return decisao(Permitir, "resultado de uma pesquisa desta atividade")
 	}
 	doUsuario := citaHost(p.TextosUsuario, host)
 	if len(p.TextosExternos) == 0 {

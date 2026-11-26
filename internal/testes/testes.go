@@ -86,6 +86,9 @@ type Opcoes struct {
 	Modelos  string
 	Config   string
 	Executor ferramentas.Executor
+	// Busca liga a pesquisa na web simulada; BuscaURL usa um SearXNG de verdade.
+	Busca    bool
+	BuscaURL string
 	// URLModelos e Chave trocam o modelo simulado por um serviço real.
 	URLModelos string
 	Chave      string
@@ -150,6 +153,10 @@ func Novo(t testing.TB, o Opcoes) *Sistema {
 	if o.Chave == "" {
 		o.Chave = Chave
 	}
+	busca := o.BuscaURL
+	if o.Busca {
+		busca = s.Web.URL
+	}
 	dir := Pasta(t)
 	s.Caminhos, err = config.CaminhosPadrao(dir)
 	falhar(err)
@@ -175,6 +182,8 @@ pasta_entrada = "` + dir + `/Entrada"
 intervalo_segundos = 3600
 [segredos]
 armazenamento = "arquivo"
+[busca]
+url = "` + busca + `"
 ` + o.Config
 	falhar(os.WriteFile(s.Caminhos.Arquivo(), []byte(cfg), 0o600))
 	cofre := segredos.Novo("arquivo", s.Caminhos.Segredos())
