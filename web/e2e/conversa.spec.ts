@@ -40,7 +40,7 @@ test("o modelo escolhe telas prontas e o texto é formatado", async ({ page, sis
   await expect(page.locator('[data-origem="usuario"]')).toHaveCount(2);
 
   await page.getByRole("link", { name: "Painel" }).click();
-  await expect(page.getByRole("cell", { name: /claude-opus/ }).first()).toBeVisible();
+  await expect(page.getByRole("cell", { name: /jev-router|teste\/forte|simulado/ }).first()).toBeVisible();
 });
 
 test("página com instruções maliciosas não leva a nenhum acesso indevido", async ({ page, sistema }) => {

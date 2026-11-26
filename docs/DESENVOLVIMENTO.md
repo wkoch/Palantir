@@ -39,6 +39,12 @@ Os testes Go usam o daemon, o proxy e as ferramentas MCP reais, ligados em memó
 **Cuidado com testes que importam pastas.** Use somente diretórios temporários. Um teste que passe `/` ou a pasta pessoal copia o disco para o acervo de teste se a recusa falhar; a regra da raiz é testada apenas pela função, sem percorrer nada.
 
 ```bash
+PALANTIR_REAL=1 PALANTIR_OPENROUTER_KEY=... go test -count=1 -v ./internal/real/
+```
+
+Roda triagem, juiz, conversa com acervo e página, relatório e estudo contra os modelos reais, com dados inventados, e mostra quem atendeu cada chamada e quanto custou (menos de US$ 0,10). Falha o que o produto garante; a qualidade é para ler na saída. Nunca use documentos ou e-mails verdadeiros aqui.
+
+```bash
 scripts/testar-conteiner.sh
 ```
 

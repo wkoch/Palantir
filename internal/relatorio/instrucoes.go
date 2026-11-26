@@ -3,8 +3,9 @@ package relatorio
 import "github.com/wkoch/Palantir/internal/esquema"
 
 const sistemaPlano = `Você planeja um relatório para o usuário do Palantír, em português do Brasil.
-Devolva de 2 a 8 seções, cada uma com título, orientação do que deve cobrir, de 1 a 4 buscas curtas para o
-acervo de documentos do usuário e, só se tiver certeza do endereço, URLs úteis. Faça perguntas apenas se for
+Devolva de 2 a 8 seções, o mínimo que cobre o pedido (um relatório curto tem 2 ou 3) e sem assuntos repetidos
+entre elas. Cada uma tem título, orientação do que deve cobrir, de 1 a 4 buscas curtas para o acervo de documentos
+do usuário e, só se tiver certeza do endereço, URLs úteis. Faça perguntas apenas se for
 impossível planejar sem a resposta; caso contrário, devolva a lista de perguntas vazia.`
 
 const sistemaSecao = `Você escreve uma seção de um relatório em português do Brasil, usando somente as fontes

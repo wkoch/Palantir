@@ -155,7 +155,7 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 
 	web := &capacidades.Web{Executor: executor, Proxy: proxyWeb, Socket: d.socket(ferramentas.Web)}
 	hosts := func() []string { return d.Config().Ferramentas.Web.Hosts }
-	ag := &agente.Agente{Modelos: d.Roteador, Confirmacoes: d.Confirmacoes, Diario: d.Diario,
+	ag := &agente.Agente{Modelos: d.Roteador, Decisor: d.Roteador, Confirmacoes: d.Confirmacoes, Diario: d.Diario,
 		HostsLiberados: hosts, Juiz: func() bool { return d.Config().Modelos.Juiz },
 		Ferramentas: capacidades.Ferramentas(d.Acervo, web)}
 
@@ -163,6 +163,7 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 	d.Gerente.Registrar(politica.Relatorio, &relatorio.Executor{Armazem: d.Armazem, Modelos: d.Roteador,
 		Acervo: d.Acervo, Web: web, Confirmacoes: d.Confirmacoes, Diario: d.Diario, HostsLiberados: hosts})
 	d.Gerente.Registrar(politica.Triagem, &email.Executor{Armazem: d.Armazem, DB: d.DB, Modelos: d.Roteador,
+		Decisor:  d.Roteador,
 		Executor: executor, Cofre: d.Cofre, Diario: d.Diario, Socket: d.socket(ferramentas.IMAP),
 		Config: func() config.IMAP { return d.Config().IMAP }})
 	d.Gerente.Registrar(politica.Estudo, &estudo.Executor{Armazem: d.Armazem, DB: d.DB, Modelos: d.Roteador,

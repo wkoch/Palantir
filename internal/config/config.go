@@ -132,6 +132,8 @@ type Modelos struct {
 	Principal  string `toml:"principal" json:"principal"`
 	Forte      string `toml:"forte" json:"forte"`
 	Embeddings string `toml:"embeddings" json:"embeddings"`
+	// Decisoes é o modelo de respostas fechadas, usado na triagem e no juiz.
+	Decisoes   string `toml:"decisoes" json:"decisoes"`
 	Juiz       bool   `toml:"juiz" json:"juiz"`
 	Enriquecer bool   `toml:"enriquecer" json:"enriquecer"`
 }

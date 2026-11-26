@@ -99,13 +99,17 @@ Páginas geradas pelo modelo, num iframe isolado, sem rede e sem acesso ao daemo
 
 ## Modelos
 
-Três níveis, configurados num arquivo, sem nomes de modelos no código:
+Configurados num arquivo, sem nomes de modelos no código. Todo pedido exige [retenção zero de dados](SEGURANCA.md#retenção-zero-de-dados).
 
-| Nível | Uso |
-| --- | --- |
-| Barato | Classificar e-mails, extrair metadados, escolher a tela |
-| Principal | Conversa, redação, relatórios |
-| Forte | Pesquisa profunda e revisão crítica, quando pedido ou exigido pela atividade |
+| Nível | Uso | Padrão |
+| --- | --- | --- |
+| Barato | Resumos de e-mail, extração de metadados, dúvidas da triagem | `typesafe/jev-router` |
+| Principal | Conversa, redação, relatórios, estudo | `typesafe/jev-router` |
+| Forte | Pesquisa profunda e revisão crítica, quando pedido | `typesafe/jev-router` |
+| Decisões | Classificar cada e-mail e julgar ações, sem gerar texto | `typesafe/jev-1.14` |
+| Vetores | Busca semântica | `baai/bge-m3` |
+
+O [jev-router](https://openrouter.ai/typesafe/jev-router) escolhe o modelo e o esforço de cada pedido e cobra o preço do modelo escolhido. O [Jev](https://typesafe.ai/) responde perguntas fechadas com probabilidades, pela API de decisões do OpenRouter, que ainda é experimental: se ela faltar ou mudar, o nível barato assume. Na triagem, as classificações com confiança abaixo de 70% também seguem para o nível barato.
 
 Cada atividade tem um orçamento, e há também um teto mensal. A fila de atenção mostra o custo de cada atividade.
 

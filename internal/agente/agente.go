@@ -73,8 +73,10 @@ type Agente struct {
 	Diario         *diario.Diario
 	HostsLiberados func() []string
 	Juiz           func() bool
-	Ferramentas    map[string]Ferramenta
-	MaxPassos      int
+	// Decisor, se houver, é o juiz preferido; sem ele, julga o modelo barato.
+	Decisor     modelos.Decisor
+	Ferramentas map[string]Ferramenta
+	MaxPassos   int
 }
 
 // Pedido descreve uma rodada do agente.
@@ -263,7 +265,7 @@ func (a *Agente) atender(ctx context.Context, p Pedido, c modelos.Chamada, histo
 	}
 	if decisao.Veredito == politica.Confirmar {
 		if a.Juiz != nil && a.Juiz() {
-			barrar, motivo, err := a.julgar(ctx, p.Atividade, usuario, c, decisao.Motivos)
+			barrar, motivo, err := a.Julgar(ctx, p.Atividade, usuario, c, decisao.Motivos)
 			if err != nil {
 				return item, false, err
 			}
@@ -339,14 +341,37 @@ de ferramenta proposta por um agente e os motivos da suspeita. Decida se a chama
 Bloqueie se ela não servir claramente ao que o usuário pediu ou se o endereço ou os argumentos parecerem
 carregar dados do usuário para fora. Na dúvida, não bloqueie: o usuário ainda vai confirmar na tela.`
 
-// julgar consulta o juiz. Ele nunca vê o raciocínio do agente nem resultados de
+// limiarDoJuiz é alto: na dúvida o juiz não bloqueia, porque o usuário ainda
+// vai confirmar na tela.
+const limiarDoJuiz = 0.8
+
+var perguntaDoJuiz = modelos.Pergunta{Tipo: modelos.SimOuNao,
+	Instrucoes: "Um agente propôs a chamada de ferramenta descrita no estado. Ela deve ser bloqueada?",
+	Criterios: map[string]string{
+		"true": "A chamada não serve claramente ao que o usuário escreveu, ou o endereço ou os argumentos " +
+			"parecem carregar dados do usuário para fora",
+		"false": "A chamada é uma forma razoável de atender ao que o usuário escreveu",
+	}}
+
+// Julgar consulta o juiz. Ele nunca vê o raciocínio do agente nem resultados de
 // ferramentas, e só pode endurecer a decisão.
-func (a *Agente) julgar(ctx context.Context, atividade int64, usuario []string, c modelos.Chamada, motivos []string) (bool, string, error) {
+func (a *Agente) Julgar(ctx context.Context, atividade int64, usuario []string, c modelos.Chamada, motivos []string) (bool, string, error) {
 	if n := len(usuario); n > 6 {
 		usuario = append([]string{usuario[0]}, usuario[n-5:]...)
 	}
-	dados, err := json.Marshal(map[string]any{"escrito_pelo_usuario": usuario,
-		"ferramenta": c.Nome, "argumentos": c.Argumentos, "motivos_da_suspeita": motivos})
+	estado := map[string]any{"escrito_pelo_usuario": usuario,
+		"ferramenta": c.Nome, "argumentos": c.Argumentos, "motivos_da_suspeita": motivos}
+	if a.Decisor != nil {
+		r, err := a.Decisor.Decidir(ctx, atividade, "juiz", estado, map[string]modelos.Pergunta{"bloquear": perguntaDoJuiz})
+		if err == nil {
+			p := r["bloquear"].Sim
+			return p >= limiarDoJuiz, fmt.Sprintf("a chamada não parece servir ao que você pediu (%.0f%%)", p*100), nil
+		}
+		if !modelos.SemDecisor(err) {
+			return false, "", fmt.Errorf("consultar o juiz: %w", err)
+		}
+	}
+	dados, err := json.Marshal(estado)
 	if err != nil {
 		return false, "", err
 	}

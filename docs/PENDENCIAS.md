@@ -5,19 +5,12 @@ Itens que dependem de uma decisão ou de uma prova sua. Em cada um há o comport
 ## Provas que só você pode fazer
 
 - [ ] Instalar no HP e percorrer o [roteiro de prova](INSTALACAO.md#4-roteiro-de-prova-das-funções-principais).
-- [ ] `palantird diagnostico --modelos` com a sua chave. **Nenhuma chamada foi feita ao OpenRouter real**: o formato dos pedidos foi testado só contra o simulador.
+- [ ] `palantird diagnostico --modelos` no HP, com a sua chave. Em 26/11/2026 as funções principais e a suíte de injeção passaram contra os modelos reais no computador de desenvolvimento, com uma chave temporária e dados inventados.
+- [ ] Escolher **ZDR only** nas [configurações de privacidade](https://openrouter.ai/settings/privacy) do OpenRouter.
 - [ ] Triagem na sua caixa de e-mail. O IMAP foi testado contra um servidor em memória.
-- [ ] Um relatório e um estudo com material real, para julgar a qualidade das instruções dadas aos modelos.
-- [ ] Suíte de injeção contra os modelos reais (custa créditos):
-
-  ```bash
-  PALANTIR_INJECAO_REAL=1 PALANTIR_OPENROUTER_KEY=... go test -count=1 -v ./internal/injecao/
-  ```
+- [ ] Um relatório e um estudo com material seu, para julgar a qualidade.
 
 ## Decisões
-
-### Licença do repositório
-O repositório é público e não tem licença, o que reserva todos os direitos. Escolha uma (MIT, Apache-2.0, AGPL-3.0) ou torne o repositório privado.
 
 ### Onde guardar os segredos
 A arquitetura previa o keyring (Secret Service). Com login automático não há senha para destravá-lo. **Atual:** arquivo `segredos.json` com permissão 0600 no disco cifrado. A opção `armazenamento = "secret-service"` existe, mas exige um keyring destravado. Recomendo manter o arquivo.
@@ -28,17 +21,8 @@ A arquitetura previa o keyring (Secret Service). Com login automático não há 
 ### Acesso à API local
 A interface escuta só em `127.0.0.1` e recusa outros sites, mas qualquer programa em execução na máquina pode usar a API. No HP só rodam o Palantír e o que você abrir no tty2. Se isso mudar, a proteção seria um token entregue ao Chromium da sessão.
 
-### Modelos e orçamento
-**Atual:** Claude Haiku 5.5, Sonnet 5.5 e Opus 5.5 para os três níveis, `baai/bge-m3` para a busca semântica, US$ 20 por mês e US$ 1 por atividade. Ajuste em `config.toml`.
-
-### Gastos automáticos ao importar
-**Atual:** cada documento importado recebe vetores e, com `enriquecer = true`, resumo e entidades. Importar uma pasta grande consome créditos, limitado pelo teto mensal. Desligue com `enriquecer = false`.
-
-### Etiquetas no servidor de e-mail
-**Atual:** a classificação é gravada como etiqueta `Palantir_*` (`etiquetar = true`). Desmarque em Ajustes para uma triagem que não altera nada.
-
-### Provedor de e-mail
-Só há autenticação por senha (IMAP). Gmail exige senha de aplicativo; contas Microsoft costumam exigir OAuth2, que não foi implementado. Diga qual é o seu provedor.
+### Custo da conversa
+O jev-router tem mandado a conversa com ferramentas ao Claude Opus 5.5 (cerca de US$ 0,01 por resposta nos testes). Se pesar, fixe um modelo mais barato no nível `principal` ou peça um limite ao roteador.
 
 ### Pesquisa na web
 Não há mecanismo de busca: a pesquisa lê endereços que você informa, hosts liberados e, com a sua confirmação, os sugeridos pelo modelo. Integrar uma API de busca (paga ou uma instância SearXNG) é uma decisão sua. A lista inicial de hosts é `pt.wikipedia.org`, `www.planalto.gov.br` e `www.gov.br`.

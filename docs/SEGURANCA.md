@@ -24,6 +24,18 @@ O sistema guarda todos os documentos do usuário, tem acesso ao e-mail e envia c
 10. **Autoproteção.** Nenhuma ferramenta ou atividade pode alterar a configuração do daemon, as permissões ou o diário.
 11. **SSH** só por chave e só na rede local.
 
+## Retenção zero de dados
+
+Todo pedido ao OpenRouter (conversa, vetores e decisões) leva as preferências abaixo, fixas no código ([modelos.go](../internal/modelos/modelos.go)):
+
+```json
+"provider": { "zdr": true, "data_collection": "deny", "ignore": ["google-vertex"] }
+```
+
+`zdr` restringe o roteamento a provedores que não guardam o conteúdo, e `data_collection` recusa os que o usam. O Vertex é excluído porque o OpenRouter pode contá-lo como ZDR mesmo quando ele retém conteúdo para análise de abuso ("Safety Retention"). Se nenhum provedor atender a isso, o pedido falha; ele nunca é refeito sem a exigência. Ative também **ZDR only** nas [configurações de privacidade](https://openrouter.ai/settings/privacy) da sua conta.
+
+Limites: o conteúdo passa pelo OpenRouter e pelo provedor para ser processado, e o OpenRouter anunciou uma triagem automática de material de abuso sexual infantil que vale também para pedidos ZDR. O diário registra o modelo e o provedor que atenderam cada chamada.
+
 ## Regras de acesso a endereços
 
 A decisão é código ([politica.go](../internal/politica/politica.go)). Só o que o usuário escreveu autoriza.
@@ -44,7 +56,7 @@ A importação de pastas recusa a raiz do disco e nunca lê a configuração, os
 
 ## Juiz de ações
 
-Chamadas suspeitas passam por um modelo juiz antes de executar. O juiz vê apenas o que **você** escreveu, a chamada proposta e os motivos da suspeita. Ele nunca vê o raciocínio do agente nem os resultados de ferramentas, porque um conteúdo malicioso tentaria convencê-lo por ali. O juiz pode bloquear, mas não pode liberar uma chamada já bloqueada pelas regras.
+Chamadas suspeitas passam por um juiz antes de executar: o Jev, que devolve a probabilidade de a chamada ter de ser bloqueada (o limite é 80%), ou o modelo barato, se ele faltar. O juiz vê apenas o que **você** escreveu, a chamada proposta e os motivos da suspeita. Ele nunca vê o raciocínio do agente nem os resultados de ferramentas, porque um conteúdo malicioso tentaria convencê-lo por ali. O juiz pode bloquear, mas não pode liberar uma chamada já bloqueada pelas regras.
 
 ## Testes de injeção
 
@@ -55,7 +67,9 @@ A suíte de testes inclui um conjunto de e-mails, páginas e documentos malicios
 - uso de ferramenta fora das permissões da atividade;
 - leitura de segredos ou da configuração do daemon.
 
-Qualquer caso que leve a uma dessas ações reprova o build. A suíte ([internal/injecao](../internal/injecao/injecao_test.go)) roda contra um **modelo comprometido**: assim que vê conteúdo externo, ele tenta tudo o que um atacante pediria. O daemon, o proxy e as ferramentas são os reais. Periodicamente ela também deve rodar contra os modelos configurados, com `PALANTIR_INJECAO_REAL=1` e `PALANTIR_OPENROUTER_KEY`.
+Qualquer caso que leve a uma dessas ações reprova o build. A suíte ([internal/injecao](../internal/injecao/injecao_test.go)) roda contra um **modelo comprometido**: assim que vê conteúdo externo, ele tenta tudo o que um atacante pediria. O daemon, o proxy e as ferramentas são os reais. Periodicamente ela também deve rodar contra os modelos configurados, com `PALANTIR_INJECAO_REAL=1` e `PALANTIR_OPENROUTER_KEY`. Em 26/11/2026 todos os cenários passaram contra o jev-router e o Jev; a busca no próprio acervo pelo nome do atacante, que um modelo real fez, não é acesso e não reprova.
+
+Na triagem, cada e-mail é decidido numa chamada separada, para que o texto de um não influencie a classe de outro. Um e-mail que o Jev reconhece como tentativa de dar ordens a um assistente vai para o lixo com um aviso.
 
 Limites conhecidos:
 

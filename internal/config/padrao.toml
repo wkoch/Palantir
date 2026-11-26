@@ -10,14 +10,20 @@ endereco = "127.0.0.1:7700"
 
 [modelos]
 url = "https://openrouter.ai/api/v1"
+# Todo pedido exige retenção zero de dados (ZDR). Isso é fixo no código.
+#
 # Três níveis: barato (classificar, extrair), principal (conversa, redação)
-# e forte (pesquisa profunda e revisão crítica, quando pedido).
-barato = "anthropic/claude-haiku-5.5"
-principal = "anthropic/claude-sonnet-5.5"
-forte = "anthropic/claude-opus-5.5"
+# e forte (pesquisa profunda e revisão crítica, quando pedido). O jev-router
+# escolhe o modelo de cada pedido; para fixar um, informe o nome dele.
+barato = "typesafe/jev-router"
+principal = "typesafe/jev-router"
+forte = "typesafe/jev-router"
+# Decisões fechadas (classificar e-mail, juiz de ações), sem gerar texto.
+# Deixe vazio para usar o modelo barato no lugar.
+decisoes = "typesafe/jev-1.14"
 # Deixe vazio para desligar a busca semântica.
 embeddings = "baai/bge-m3"
-# Consulta o modelo barato como juiz antes de pedir confirmação.
+# Consulta um juiz antes de pedir confirmação.
 # O juiz pode bloquear, nunca liberar.
 juiz = true
 # Extrai entidades e resumos dos documentos importados (custa créditos).

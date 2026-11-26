@@ -49,13 +49,14 @@ O script instala os pacotes, constrói a imagem das ferramentas (precisa de rede
 Reinicie. Depois da senha do disco, a fila de atenção aparece sozinha.
 
 1. Em **Ajustes**, cole a chave do [OpenRouter](https://openrouter.ai/keys). Defina um limite de gasto também no site do OpenRouter, como segunda proteção.
-2. Abra o console com `Ctrl+Alt+F2`, entre e confira os modelos. Volte com `Ctrl+Alt+F1`.
+2. Nas [configurações de privacidade](https://openrouter.ai/settings/privacy) do OpenRouter, escolha **ZDR only**. O Palantír já exige retenção zero em cada pedido; a opção da conta fecha também a retenção para análise de abuso.
+3. Abra o console com `Ctrl+Alt+F2`, entre e confira os modelos. Volte com `Ctrl+Alt+F1`.
 
    ```bash
    palantird diagnostico --modelos
    ```
 
-3. Em **Ajustes**, configure o IMAP. Use uma [senha de aplicativo](PENDENCIAS.md#provedor-de-e-mail), nunca a senha principal.
+4. Em **Ajustes**, configure o IMAP. Há só login por senha: se o provedor oferecer senha de aplicativo, use-a em vez da principal.
 
 ## 4. Roteiro de prova das funções principais
 

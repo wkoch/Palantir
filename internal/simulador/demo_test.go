@@ -111,6 +111,7 @@ func TestDemonstracaoRecusas(t *testing.T) {
 }
 
 func TestModeloSimulado(t *testing.T) {
+	const privado = `{"provider":{"zdr":true,"data_collection":"deny"}}`
 	s := testes.Novo(t, testes.Opcoes{})
 	url := s.D.Config().Modelos.URL
 	for _, c := range []struct {
@@ -118,10 +119,12 @@ func TestModeloSimulado(t *testing.T) {
 		quer               int
 	}{
 		{"", "/chat/completions", "{}", 401},
+		{"k", "/chat/completions", `{"provider":{"zdr":false}}`, 400},
 		{"k", "/chat/completions", "x", 400},
 		{"k", "/embeddings", "x", 400},
-		{"k", "/nada", "{}", 404},
-		{"k", "/chat/completions", "{}", 200},
+		{"k", "/nada", privado, 404},
+		{"k", "/decisions", privado, 400},
+		{"k", "/chat/completions", privado, 200},
 	} {
 		req, _ := http.NewRequest("POST", url+c.rota, strings.NewReader(c.corpo))
 		req.Header.Set("Authorization", "Bearer "+c.chave)
@@ -151,7 +154,7 @@ func TestModeloSimulado(t *testing.T) {
 		}
 		return simulador.Padrao(x)
 	}
-	for _, e := range []string{"enriquecimento", "arvore_assuntos", "classificacao_email", "juiz", "material_estudo", "secao_relatorio"} {
+	for _, e := range []string{"enriquecimento", "arvore_assuntos", "classificacao_email", "resumos_email", "juiz", "material_estudo", "secao_relatorio"} {
 		if p(e, "nada").JSON == nil {
 			t.Error(e)
 		}

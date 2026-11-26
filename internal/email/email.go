@@ -63,9 +63,12 @@ type Preferencia struct {
 
 // Executor implementa atividades.Executor.
 type Executor struct {
-	Armazem  *atividades.Armazem
-	DB       *sql.DB
-	Modelos  modelos.Completador
+	Armazem *atividades.Armazem
+	DB      *sql.DB
+	Modelos modelos.Completador
+	// Decisor, se houver, classifica uma mensagem por vez; o modelo de conversa
+	// fica para os resumos, as dúvidas e a falta do decisor.
+	Decisor  modelos.Decisor
 	Executor ferramentas.Executor
 	Cofre    segredos.Cofre
 	Config   func() config.IMAP
@@ -263,13 +266,23 @@ func (e *Executor) classificar(ctx context.Context, id int64) error {
 			continue
 		}
 		if c, ok := porRemetente[m.Email]; ok && m.Email != "" {
-			porRegra[m.UID] = classificacao{c, cortar(m.Assunto, maxResumo), PorRegra}
+			porRegra[m.UID] = classificacao{classe: c, resumo: cortar(m.Assunto, maxResumo), origem: PorRegra}
 		} else {
 			restantes = append(restantes, m)
 		}
 	}
 	if err := e.aplicar(ctx, id, porRegra); err != nil {
 		return err
+	}
+	if e.Decisor != nil && len(restantes) > 0 {
+		feitas, err := e.decidir(ctx, id, restantes, preferencias)
+		if err != nil && !modelos.SemDecisor(err) {
+			return err
+		}
+		restantes = slices.DeleteFunc(restantes, func(m Mensagem) bool { _, ok := feitas[m.UID]; return ok })
+		if err := e.resumir(ctx, id, feitas); err != nil && !errors.Is(err, modelos.ErrRespostaRuim) {
+			return err
+		}
 	}
 	var exemplos strings.Builder
 	for i, p := range preferencias {
@@ -287,8 +300,7 @@ func (e *Executor) classificar(ctx context.Context, id int64) error {
 		doLote := map[uint32]bool{}
 		for _, m := range lote {
 			doLote[m.UID] = true
-			corpo.WriteString(proveniencia.Embrulhar(proveniencia.Ferramenta, fmt.Sprintf("e-mail uid %d", m.UID),
-				fmt.Sprintf("uid: %d\nde: %s <%s>\nassunto: %s\ninício: %s", m.UID, m.De, m.Email, m.Assunto, m.Trecho)) + "\n")
+			corpo.WriteString(embrulhar(m))
 		}
 		var r struct {
 			Itens []struct {
@@ -309,7 +321,7 @@ func (e *Executor) classificar(ctx context.Context, id int64) error {
 		novas := map[uint32]classificacao{}
 		for _, it := range r.Itens {
 			if uid := uint32(it.UID); it.UID > 0 && doLote[uid] {
-				novas[uid] = classificacao{it.Classe, cortar(it.Resumo, maxResumo), PorModelo}
+				novas[uid] = classificacao{classe: it.Classe, resumo: cortar(it.Resumo, maxResumo), origem: PorModelo}
 			}
 		}
 		if err := e.aplicar(ctx, id, novas); err != nil {

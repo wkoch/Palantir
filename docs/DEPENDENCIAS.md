@@ -43,4 +43,4 @@ Go, Node, `poppler-utils`, Podman, `shellcheck` (CI), `govulncheck` (CI). Para a
 
 ## Serviço externo
 
-OpenRouter (`https://openrouter.ai/api/v1`): recebe o conteúdo enviado aos modelos. É o único destino de rede do daemon; as ferramentas saem apenas pelo proxy.
+OpenRouter (`https://openrouter.ai/api/v1` e `/api/alpha/decisions`): recebe o conteúdo enviado aos modelos, incluindo `typesafe/jev-router` e `typesafe/jev-1.14` (TypeSafe, hospedado nos Estados Unidos), sempre exigindo retenção zero de dados. É o único destino de rede do daemon; as ferramentas saem apenas pelo proxy.

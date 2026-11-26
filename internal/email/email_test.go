@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wkoch/Palantir/internal/atividades"
 	"github.com/wkoch/Palantir/internal/config"
@@ -46,10 +47,22 @@ func TestTriagemCorrecoesEPreferencias(t *testing.T) {
 	if v.Mensagens[0].Classe != "urgente" || v.Mensagens[4].Classe != "lixo" || !v.Etiqueta {
 		t.Error(v.Mensagens)
 	}
-	// O modelo recebe cabeçalho e trecho, sem ferramentas.
-	p := s.Modelo.Pedidos()[0]
-	if len(p.Ferram) != 0 || p.Modelo != "anthropic/claude-haiku-5.5" {
-		t.Error(p.Modelo, len(p.Ferram))
+	// O decisor recebe uma mensagem por chamada; o modelo barato, sem
+	// ferramentas, resume só o que pede atenção.
+	if n := len(s.Modelo.Decisoes()); n != 5 {
+		t.Error("uma decisão por mensagem:", n)
+	}
+	p := s.Modelo.Pedidos()
+	if len(p) != 1 || len(p[0].Ferram) != 0 || p[0].Modelo != "teste/barato" || p[0].Esquema() != "resumos_email" {
+		t.Fatal(len(p))
+	}
+	if m := achar(t, d, 2); m.Resumo == "" {
+		t.Error("urgente sem resumo")
+	}
+	for _, m := range d.Mensagens {
+		if m.Classe == "ler_depois" && m.Resumo != "" {
+			t.Error("resumo desnecessário", m)
+		}
 	}
 
 	r, x := s.Agir(x.ID, "abrir", `{"uid":2}`)
@@ -76,18 +89,18 @@ func TestTriagemCorrecoesEPreferencias(t *testing.T) {
 	if err := s.Correio.Entregar(simulador.Email{De: "Boletim <boletim@exemplo.test>", Assunto: "Novo boletim", Corpo: "x"}); err != nil {
 		t.Fatal(err)
 	}
-	chamadas := len(s.Modelo.Pedidos())
+	chamadas := len(s.Modelo.Pedidos()) + len(s.Modelo.Decisoes())
 	_, x = s.Agir(x.ID, "atualizar", `{}`)
 	if m := achar(t, dados(t, x), 6); m.Classe != "urgente" || m.Origem != email.PorRegra || !m.Etiquetada {
 		t.Errorf("%+v", m)
 	}
-	if len(s.Modelo.Pedidos()) != chamadas {
+	if len(s.Modelo.Pedidos())+len(s.Modelo.Decisoes()) != chamadas {
 		t.Error("o modelo foi chamado para o que a regra resolve")
 	}
 	// E entra como exemplo para as demais.
 	s.Correio.Entregar(simulador.Email{De: "Outro <outro@exemplo.test>", Assunto: "pode ver?", Corpo: "x"})
 	_, x = s.Agir(x.ID, "atualizar", `{}`)
-	ultimo := s.Modelo.Pedidos()[len(s.Modelo.Pedidos())-1]
+	ultimo := s.Modelo.Decisoes()[len(s.Modelo.Decisoes())-1]
 	if !strings.Contains(ultimo.Bruto, "boletim@exemplo.test") {
 		t.Error("as correções não foram enviadas")
 	}
@@ -139,7 +152,8 @@ func TestMuitasMensagensEmLotesELimite(t *testing.T) {
 	for i := range 320 {
 		emails = append(emails, simulador.Email{De: fmt.Sprintf("p%d@exemplo.test", i), Assunto: fmt.Sprintf("Assunto %d", i), Corpo: "c"})
 	}
-	s := testes.Novo(t, testes.Opcoes{Emails: emails})
+	// Sem decisor, o modelo barato classifica em lotes.
+	s := testes.Novo(t, testes.Opcoes{Emails: emails, Modelos: `decisoes = ""`})
 	if err := s.D.Ajustar(config.Ajustes{IMAP: func() *config.IMAP {
 		c := s.D.Config().IMAP
 		c.Limite, c.Etiquetar = 500, false
@@ -199,5 +213,66 @@ func TestMudancaDeValidadeRecomeca(t *testing.T) {
 	_, x = s.Agir(x.ID, "atualizar", `{}`)
 	if d := dados(t, x); len(d.Mensagens) != 5 || d.UltimoUID != 5 {
 		t.Error(d)
+	}
+}
+
+func TestDecisorEmDuvidaPassaAoModeloDeConversa(t *testing.T) {
+	s := testes.Novo(t, testes.Opcoes{})
+	// Um texto que dá ordens vai para o lixo, mesmo com pouca confiança; as
+	// demais dúvidas seguem para o modelo de conversa.
+	s.Modelo.DefinirDecisao(func(p simulador.PedidoDeDecisao) (simulador.Resposta, bool) {
+		assunto := p.Estado["email"].(map[string]any)["assunto"].(string)
+		ordem := 0.01
+		if strings.Contains(strings.ToLower(assunto), "fatura") {
+			ordem = 0.99
+		}
+		return simulador.Resposta{JSON: map[string]any{
+			"classe": simulador.Opcao("lixo", 0.4), "ordem": simulador.Sim(ordem)}}, true
+	})
+	x := s.Criar("triagem", "", "")
+	var avisadas int
+	for _, m := range dados(t, x).Mensagens {
+		switch {
+		case strings.HasPrefix(m.Resumo, "Atenção") && m.Classe == "lixo":
+			avisadas++
+		case m.Classe == "" || !strings.HasPrefix(m.Resumo, "Resumo: "):
+			t.Errorf("a dúvida não passou ao modelo de conversa: %+v", m)
+		}
+	}
+	p := s.Modelo.Pedidos()
+	if avisadas == 0 || len(p) != 1 || p[0].Esquema() != "classificacao_email" {
+		t.Fatal(avisadas, len(p))
+	}
+}
+
+func TestDecisorRecusadoUsaOModeloDeConversa(t *testing.T) {
+	s := testes.Novo(t, testes.Opcoes{})
+	s.Modelo.DefinirDecisao(func(simulador.PedidoDeDecisao) (simulador.Resposta, bool) {
+		return simulador.Resposta{Status: 404, Texto: "sem esse modelo"}, true
+	})
+	x := s.Criar("triagem", "", "")
+	if x.Estado != atividades.Pronta {
+		t.Fatal(x.Estado, x.Aviso)
+	}
+	p := s.Modelo.Pedidos()
+	if len(p) != 1 || p[0].Esquema() != "classificacao_email" {
+		t.Fatal(len(p))
+	}
+	for _, m := range dados(t, x).Mensagens {
+		if m.Classe == "" {
+			t.Error(m)
+		}
+	}
+}
+
+func TestDecisorSemRedeNaoClassificaPorOutroCaminho(t *testing.T) {
+	s := testes.Novo(t, testes.Opcoes{})
+	s.D.Roteador.Espera = time.Millisecond
+	s.Modelo.DefinirDecisao(func(simulador.PedidoDeDecisao) (simulador.Resposta, bool) {
+		return simulador.Resposta{Status: 503}, true
+	})
+	x := s.Criar("triagem", "", "")
+	if x.Estado == atividades.Pronta || len(s.Modelo.Pedidos()) != 0 {
+		t.Fatal(x.Estado, len(s.Modelo.Pedidos()))
 	}
 }

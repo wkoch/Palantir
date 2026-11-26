@@ -44,6 +44,14 @@ func (d *Daemon) TestarModelos(ctx context.Context) []Teste {
 		err = errors.New("o modelo não usou a ferramenta pedida")
 	}
 	testes = append(testes, Teste{"ferramentas do modelo", r.Modelo, r.CustoUSD, err})
+	if d.Config().Modelos.Decisoes != "" {
+		antes, _ := d.Livro.NoMes(ctx)
+		_, err := d.Roteador.Decidir(ctx, 0, "diagnostico", "Bom dia!", map[string]modelos.Pergunta{
+			"cumprimento": {Tipo: modelos.SimOuNao, Instrucoes: "O texto é um cumprimento?",
+				Criterios: map[string]string{"true": "Sim", "false": "Não"}}})
+		depois, _ := d.Livro.NoMes(ctx)
+		testes = append(testes, Teste{"decisões", d.Config().Modelos.Decisoes, depois - antes, err})
+	}
 	if d.Config().Modelos.Embeddings != "" {
 		_, modelo, err := d.Roteador.Embeddings(ctx, 0, []string{"teste"})
 		testes = append(testes, Teste{Nome: "busca semântica", Modelo: modelo, Erro: err})

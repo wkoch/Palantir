@@ -85,12 +85,12 @@ Atualizada em 26 de novembro de 2026. Um critério só é marcado como cumprido 
 | P2 | Relatório em segundo plano que avisa quando fica pronto | sim, modelo simulado | | pendente |
 | P2 | Corrigir uma seção não altera as outras | sim | | pendente |
 | P2 | Toda afirmação tem fonte | sim: parágrafos sem fonte válida são descartados | | pendente |
-| P3 | A suíte de injeção passa | sim, modelo comprometido simulado | | contra modelos reais: pendente |
+| P3 | A suíte de injeção passa | sim, simulado e modelos reais | | pendente |
 | P3 | O IMAP não alcança outro host | sim, com o Podman real | | pendente |
 | P3 | Triagem de uma manhã real em poucos minutos | | | pendente |
 | P4 | Árvore de um edital real apontando para o acervo | sim, com edital de exemplo | | pendente |
 | P4 | Revisões sem rede | sim | | pendente |
 | P4 | Uma sessão de estudo real concluída | | | pendente |
 
-Nos testes o modelo é simulado: eles medem o funcionamento, não a qualidade das respostas.
+Na suíte comum o modelo é simulado: ela mede o funcionamento, não a qualidade das respostas. Em 26/11/2026, no computador de desenvolvimento, conversa com citações (P1), relatório (P2), triagem e suíte de injeção (P3) e estudo (P4) também passaram contra os modelos reais, com dados inventados. Isso não substitui a prova no HP.
 

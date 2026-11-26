@@ -28,8 +28,10 @@ type Modelo struct {
 	// mantém o comportamento normal.
 	Responder func(p PedidoRecebido) (Resposta, bool)
 
-	mu      sync.Mutex
-	pedidos []PedidoRecebido
+	mu       sync.Mutex
+	pedidos  []PedidoRecebido
+	decidir  func(p PedidoDeDecisao) (Resposta, bool)
+	decisoes []PedidoDeDecisao
 }
 
 // MensagemRecebida é uma mensagem do pedido.
@@ -142,8 +144,22 @@ func (m *Modelo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case <-time.After(m.Atraso):
 		}
 	}
+	// O Palantír nunca pode pedir nada sem exigir retenção zero de dados.
+	var privado struct {
+		Provedor struct {
+			ZDR    bool   `json:"zdr"`
+			Coleta string `json:"data_collection"`
+		} `json:"provider"`
+	}
+	if json.Unmarshal(corpo, &privado) != nil || !privado.Provedor.ZDR || privado.Provedor.Coleta != "deny" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]string{"message": "pedido sem exigir ZDR"}})
+		return
+	}
 	uso := map[string]any{"prompt_tokens": len(corpo) / 4, "completion_tokens": 100, "cost": m.Custo}
 	switch {
+	case strings.HasSuffix(r.URL.Path, "/decisions"):
+		m.decisao(w, corpo)
 	case strings.HasSuffix(r.URL.Path, "/embeddings"):
 		var p struct {
 			Entrada []string `json:"input"`
@@ -289,6 +305,8 @@ func Padrao(p PedidoRecebido) Resposta {
 		return secao(p)
 	case "classificacao_email":
 		return classificar(p)
+	case "resumos_email":
+		return resumos(p)
 	case "arvore_assuntos":
 		return arvore(p)
 	case "material_estudo":
@@ -348,8 +366,9 @@ func secao(p PedidoRecebido) Resposta {
 	return Resposta{JSON: map[string]any{"paragrafos": paragrafos}}
 }
 
-func classificar(p PedidoRecebido) Resposta {
-	itens := []any{}
+// emails lê os blocos de e-mail do pedido.
+func emails(p PedidoRecebido) []map[string]string {
+	var lista []map[string]string
 	for _, b := range blocos(p.usuario()) {
 		campos := map[string]string{}
 		for _, l := range strings.Split(b.texto, "\n") {
@@ -357,24 +376,48 @@ func classificar(p PedidoRecebido) Resposta {
 				campos[k] = v
 			}
 		}
-		uid, err := strconv.Atoi(campos["uid"])
-		if err != nil {
-			continue
+		if _, err := strconv.Atoi(campos["uid"]); err == nil {
+			lista = append(lista, campos)
 		}
-		t := strings.ToLower(campos["assunto"] + " " + campos["início"])
-		tem := func(s ...string) bool {
-			return slices.ContainsFunc(s, func(x string) bool { return strings.Contains(t, x) })
-		}
-		classe := "ler_depois"
-		switch {
-		case tem("ignore", "instruç", "assistente", "promoç", "desconto", "ganhe", "oferta"):
-			classe = "lixo"
-		case tem("urgente", "vence hoje", "último dia", "prazo"):
-			classe = "urgente"
-		case tem("pode", "poderia", "confirma", "reunião", "?"):
-			classe = "responder"
-		}
-		itens = append(itens, map[string]any{"uid": uid, "classe": classe, "resumo": "Resumo: " + campos["assunto"]})
+	}
+	return lista
+}
+
+func contem(texto string, termos ...string) bool {
+	t := strings.ToLower(texto)
+	return slices.ContainsFunc(termos, func(x string) bool { return strings.Contains(t, x) })
+}
+
+func tentaMandar(t string) bool { return contem(t, "ignore", "instruç", "assistente") }
+
+// classeDe é a triagem por palavras-chave.
+func classeDe(t string) string {
+	switch {
+	case tentaMandar(t) || contem(t, "promoç", "desconto", "ganhe", "oferta"):
+		return "lixo"
+	case contem(t, "urgente", "vence hoje", "último dia", "prazo"):
+		return "urgente"
+	case contem(t, "pode", "poderia", "confirma", "reunião", "?"):
+		return "responder"
+	}
+	return "ler_depois"
+}
+
+func classificar(p PedidoRecebido) Resposta {
+	itens := []any{}
+	for _, c := range emails(p) {
+		uid, _ := strconv.Atoi(c["uid"])
+		itens = append(itens, map[string]any{"uid": uid, "classe": classeDe(c["assunto"] + " " + c["início"]),
+			"resumo": "Resumo: " + c["assunto"]})
+	}
+	return Resposta{JSON: map[string]any{"itens": itens}}
+}
+
+func resumos(p PedidoRecebido) Resposta {
+	itens := []any{}
+	for _, c := range emails(p) {
+		uid, _ := strconv.Atoi(c["uid"])
+		itens = append(itens, map[string]any{"uid": uid, "resumo": "Resumo: " + c["assunto"]})
 	}
 	return Resposta{JSON: map[string]any{"itens": itens}}
 }

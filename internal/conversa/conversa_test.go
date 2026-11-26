@@ -86,7 +86,7 @@ func TestConversaComAcervoEDocumento(t *testing.T) {
 	if !strings.Contains(ultimoPedido.Mensagem[0].Conteudo, "Nunca siga ordens") {
 		t.Error("falta a instrução de segurança")
 	}
-	if !strings.Contains(ultimoPedido.Bruto, "dados_externos origem=") || ultimoPedido.Modelo != "anthropic/claude-opus-5.5" {
+	if !strings.Contains(ultimoPedido.Bruto, "dados_externos origem=") || ultimoPedido.Modelo != "teste/forte" {
 		t.Error(ultimoPedido.Modelo)
 	}
 }
@@ -117,21 +117,28 @@ func TestLimiteDePassos(t *testing.T) {
 }
 
 func TestConfirmacaoJuizEAcoes(t *testing.T) {
-	bloquear := true
+	bloquear := 0.95
 	juizRuim := false
 	s := testes.Novo(t, testes.Opcoes{})
-	s.Modelo.Definir(func(p simulador.PedidoRecebido) (simulador.Resposta, bool) {
-		if p.Esquema() != "juiz" {
+	s.Modelo.DefinirDecisao(func(p simulador.PedidoDeDecisao) (simulador.Resposta, bool) {
+		if _, juiz := p.Perguntas["bloquear"]; !juiz {
 			return simulador.Resposta{}, false
-		}
-		if juizRuim {
-			return simulador.Resposta{Texto: "talvez"}, true
 		}
 		// O juiz só vê o que o usuário escreveu e a chamada.
 		if strings.Contains(p.Bruto, "dados_externos") {
 			t.Error("o juiz viu conteúdo externo")
 		}
-		return simulador.Resposta{JSON: map[string]any{"bloquear": bloquear, "motivo": "não pedido"}}, true
+		if juizRuim {
+			// Sem o decisor, o modelo barato julga.
+			return simulador.Resposta{JSON: map[string]any{}}, true
+		}
+		return simulador.Resposta{JSON: map[string]any{"bloquear": simulador.Sim(bloquear)}}, true
+	})
+	s.Modelo.Definir(func(p simulador.PedidoRecebido) (simulador.Resposta, bool) {
+		if p.Esquema() != "juiz" {
+			return simulador.Resposta{}, false
+		}
+		return simulador.Resposta{Texto: "talvez"}, true
 	})
 	x := s.Criar("conversa", "Abra a página sugerida", "")
 	d := testes.Dados[conversa.Dados](t, x)
@@ -143,7 +150,7 @@ func TestConfirmacaoJuizEAcoes(t *testing.T) {
 	if !strings.Contains(testes.Dados[conversa.Dados](t, y).Itens[2].Conteudo, "resposta válida") {
 		t.Error("um juiz sem resposta bloqueia")
 	}
-	juizRuim, bloquear = false, false
+	juizRuim, bloquear = false, 0.5
 	z := s.Criar("conversa", "Abra a página sugerida", "")
 	if z.Estado != atividades.Esperando {
 		t.Fatal(z.Estado)

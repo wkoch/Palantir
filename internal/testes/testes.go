@@ -132,8 +132,14 @@ func Novo(t testing.TB, o Opcoes) *Sistema {
 	s.Web = httptest.NewServer(simulador.Web(s.Correio))
 	t.Cleanup(s.Web.Close)
 
+	var niveis string
 	if o.URLModelos == "" {
 		o.URLModelos = modelo.URL + "/api/v1"
+		// Nomes distintos permitem conferir qual nível cada tarefa usa.
+		niveis = "barato = \"teste/barato\"\nprincipal = \"teste/principal\"\nforte = \"teste/forte\""
+		if strings.Contains(o.Modelos, "barato =") {
+			niveis = ""
+		}
 	}
 	if o.Chave == "" {
 		o.Chave = Chave
@@ -146,6 +152,7 @@ func Novo(t testing.TB, o Opcoes) *Sistema {
 endereco = "127.0.0.1:0"
 [modelos]
 url = "` + o.URLModelos + `"
+` + niveis + `
 ` + o.Modelos + `
 [ferramentas]
 isolamento = "nenhum"

@@ -69,7 +69,7 @@ func TestFluxoCompleto(t *testing.T) {
 		t.Errorf("%+v", d2.Secoes[1])
 	}
 	ultimo := s.Modelo.Pedidos()[len(s.Modelo.Pedidos())-1]
-	if !strings.Contains(ultimo.Bruto, "Versão anterior") || ultimo.Modelo != "anthropic/claude-opus-5.5" {
+	if !strings.Contains(ultimo.Bruto, "Versão anterior") || ultimo.Modelo != "teste/forte" {
 		t.Error(ultimo.Modelo)
 	}
 	for _, ruim := range [][2]string{{"comentar", `{"secao":9,"texto":"x"}`}, {"comentar", `{"secao":1,"texto":" "}`},

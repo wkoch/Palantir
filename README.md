@@ -72,6 +72,7 @@ No computador de desenvolvimento:
 | `scripts/testar.sh` | Testes Go, cobertura, injeção de prompt e navegador |
 | `scripts/testar-conteiner.sh` | Isolamento das ferramentas com o Podman de verdade |
 | `scripts/testar-vm.sh` | Instalação completa numa VM com Debian 13 |
+| `PALANTIR_REAL=1 PALANTIR_OPENROUTER_KEY=... go test -v ./internal/real/` | Funções principais contra os modelos reais, com dados inventados (custa centavos) |
 | `scripts/construir.sh` | Compila em `bin/` |
 | `scripts/empacotar.sh vX.Y.Z` | Gera o pacote de uma versão em `saida/` |
 | `scripts/implantar.sh usuario@hp` | Envia a compilação atual ao HP por SSH |
@@ -99,5 +100,5 @@ No computador de desenvolvimento:
 - **Sessão:** uma unit no tty1 abre o Cage com o Chromium em kiosk apontado para o daemon local. O tty2 fica como console de emergência.
 - **Núcleo:** `palantird`, um daemon em Go que gerencia atividades, o loop do agente, permissões, orçamento e o acervo.
 - **Ferramentas:** servidores MCP em Podman rootless sem rede, que só saem pelo proxy do daemon.
-- **Modelos:** OpenRouter, em três níveis (barato, principal e forte).
+- **Modelos:** OpenRouter, sempre com retenção zero de dados (ZDR). O jev-router escolhe o modelo de cada pedido, e o Jev decide a triagem e julga ações.
 - **Dados:** originais imutáveis endereçados por hash e derivados regeneráveis em SQLite.

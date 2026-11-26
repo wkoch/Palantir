@@ -140,7 +140,8 @@ var esquemaMaterial = esquema.JSON(esquema.Objeto(map[string]any{
 const sistemaMaterial = `Você prepara material de estudo para concurso, em português do Brasil, usando somente
 os trechos fornecidos. Crie de 4 a 8 cartões (frente com uma pergunta objetiva, verso com a resposta curta) e
 de 3 a 6 questões de múltipla escolha com 5 alternativas, uma única correta (campo correta é o índice a partir
-de 0) e uma explicação. Em fonte, informe a marca do trecho que sustenta o item, como T12. Não use
+de 0) e uma explicação. Em fonte, informe a marca do trecho que sustenta o item, como T12. Nos textos, não cite
+marcas nem fale em "trecho" ou "texto": quem estuda vê só a pergunta. Não repita perguntas. Não use
 conhecimento que não esteja nos trechos.`
 
 const (

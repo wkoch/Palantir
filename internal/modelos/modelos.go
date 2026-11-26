@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -101,13 +102,16 @@ type Pedido struct {
 
 // Resposta é o que o modelo devolveu.
 type Resposta struct {
-	Conteudo  string    `json:"conteudo"`
-	Chamadas  []Chamada `json:"chamadas,omitempty"`
-	Modelo    string    `json:"modelo"`
-	TokensIn  int       `json:"tokens_in"`
-	TokensOut int       `json:"tokens_out"`
-	CustoUSD  float64   `json:"custo_usd"`
-	DoCache   bool      `json:"-"`
+	Conteudo string    `json:"conteudo"`
+	Chamadas []Chamada `json:"chamadas,omitempty"`
+	// Modelo e Provedor são os que atenderam, e não os pedidos: um roteador
+	// como o jev-router escolhe a cada chamada.
+	Modelo    string  `json:"modelo"`
+	Provedor  string  `json:"provedor,omitempty"`
+	TokensIn  int     `json:"tokens_in"`
+	TokensOut int     `json:"tokens_out"`
+	CustoUSD  float64 `json:"custo_usd"`
+	DoCache   bool    `json:"-"`
 }
 
 // Completador é o que os módulos precisam do roteador.
@@ -194,6 +198,14 @@ type fioToolCall struct {
 	} `json:"function"`
 }
 
+// privacidade acompanha todo pedido e não é configurável: só provedores com
+// retenção zero de dados (ZDR), que não guardam nem treinam com o conteúdo. O
+// Vertex fica de fora porque o OpenRouter pode contá-lo como ZDR mesmo quando
+// ele retém conteúdo para análise de abuso ("Safety Retention").
+func privacidade() map[string]any {
+	return map[string]any{"zdr": true, "data_collection": "deny", "ignore": []string{"google-vertex"}}
+}
+
 func corpoDaCompletacao(modelo string, p Pedido) ([]byte, error) {
 	msgs := make([]fioMensagem, len(p.Mensagens))
 	for i, m := range p.Mensagens {
@@ -211,6 +223,7 @@ func corpoDaCompletacao(modelo string, p Pedido) ([]byte, error) {
 		"model":    modelo,
 		"messages": msgs,
 		"usage":    map[string]any{"include": true},
+		"provider": privacidade(),
 	}
 	corpo["max_tokens"] = maxTokensPadrao
 	if p.MaxTokens > 0 {
@@ -279,6 +292,7 @@ func (r *Roteador) Completar(ctx context.Context, p Pedido) (Resposta, error) {
 
 	var fio struct {
 		Modelo   string `json:"model"`
+		Provedor string `json:"provider"`
 		Escolhas []struct {
 			Mensagem struct {
 				Conteudo string        `json:"content"`
@@ -288,14 +302,14 @@ func (r *Roteador) Completar(ctx context.Context, p Pedido) (Resposta, error) {
 		Uso  fioUso   `json:"usage"`
 		Erro *fioErro `json:"error"`
 	}
-	if err := r.enviar(ctx, p.Atividade, p.Finalidade, "/chat/completions", corpo, &fio); err != nil {
+	if err := r.enviar(ctx, p.Atividade, p.Finalidade, r.endereco("/chat/completions"), corpo, &fio); err != nil {
 		return resp, err
 	}
 	if fio.Modelo == "" {
 		fio.Modelo = modelo
 	}
 	custo := fio.Uso.custo()
-	if err := r.contabilizar(ctx, p.Atividade, p.Finalidade, fio.Modelo, fio.Uso.Entrada, fio.Uso.Saida, custo); err != nil {
+	if err := r.contabilizar(ctx, p.Atividade, p.Finalidade, fio.Modelo, fio.Provedor, fio.Uso.Entrada, fio.Uso.Saida, custo); err != nil {
 		return resp, err
 	}
 	if fio.Erro != nil {
@@ -305,7 +319,7 @@ func (r *Roteador) Completar(ctx context.Context, p Pedido) (Resposta, error) {
 		return resp, fmt.Errorf("%w: sem escolhas", ErrRespostaRuim)
 	}
 	m := fio.Escolhas[0].Mensagem
-	resp = Resposta{Conteudo: m.Conteudo, Modelo: fio.Modelo,
+	resp = Resposta{Conteudo: m.Conteudo, Modelo: fio.Modelo, Provedor: fio.Provedor,
 		TokensIn: fio.Uso.Entrada, TokensOut: fio.Uso.Saida, CustoUSD: custo}
 	for i, c := range m.Chamadas {
 		if c.ID == "" {
@@ -330,22 +344,23 @@ func (r *Roteador) Embeddings(ctx context.Context, atividade int64, textos []str
 	if modelo == "" {
 		return nil, "", ErrSemModelo
 	}
-	corpo, err := json.Marshal(map[string]any{"model": modelo, "input": textos})
+	corpo, err := json.Marshal(map[string]any{"model": modelo, "input": textos, "provider": privacidade()})
 	if err != nil {
 		return nil, "", err
 	}
 	var fio struct {
-		Dados []struct {
+		Provedor string `json:"provider"`
+		Dados    []struct {
 			Indice int       `json:"index"`
 			Vetor  []float32 `json:"embedding"`
 		} `json:"data"`
 		Uso  fioUso   `json:"usage"`
 		Erro *fioErro `json:"error"`
 	}
-	if err := r.enviar(ctx, atividade, "embeddings", "/embeddings", corpo, &fio); err != nil {
+	if err := r.enviar(ctx, atividade, "embeddings", r.endereco("/embeddings"), corpo, &fio); err != nil {
 		return nil, "", err
 	}
-	if err := r.contabilizar(ctx, atividade, "embeddings", modelo, fio.Uso.Entrada, 0, fio.Uso.custo()); err != nil {
+	if err := r.contabilizar(ctx, atividade, "embeddings", modelo, fio.Provedor, fio.Uso.Entrada, 0, fio.Uso.custo()); err != nil {
 		return nil, "", err
 	}
 	if fio.Erro != nil {
@@ -365,7 +380,7 @@ func (r *Roteador) Embeddings(ctx context.Context, atividade int64, textos []str
 	return vetores, modelo, nil
 }
 
-func (r *Roteador) contabilizar(ctx context.Context, atividade int64, finalidade, modelo string, in, out int, custo float64) error {
+func (r *Roteador) contabilizar(ctx context.Context, atividade int64, finalidade, modelo, provedor string, in, out int, custo float64) error {
 	// O gasto já aconteceu: é registrado mesmo que o pedido tenha sido cancelado.
 	ctx = context.WithoutCancel(ctx)
 	if err := r.Livro.Registrar(ctx, orcamento.Gasto{Atividade: atividade, Modelo: modelo,
@@ -373,15 +388,19 @@ func (r *Roteador) contabilizar(ctx context.Context, atividade int64, finalidade
 		return fmt.Errorf("registrar gasto: %w", err)
 	}
 	return r.Diario.Registrar(diario.Entrada{Atividade: atividade, Tipo: "modelo", Nome: modelo,
-		Decisao: "ok", Motivo: finalidade, CustoUSD: custo, Tokens: in + out})
+		Decisao: "ok", Motivo: finalidade, Detalhe: provedor, CustoUSD: custo, Tokens: in + out})
+}
+
+func (r *Roteador) endereco(rota string) string {
+	return strings.TrimRight(r.Config().URL, "/") + rota
 }
 
 // enviar faz o POST com verificação de orçamento e novas tentativas.
-func (r *Roteador) enviar(ctx context.Context, atividade int64, finalidade, rota string, corpo []byte, destino any) (err error) {
+func (r *Roteador) enviar(ctx context.Context, atividade int64, finalidade, destinoURL string, corpo []byte, destino any) (err error) {
 	defer func() {
 		// Falta de chave ou de crédito não é uma chamada: não enche o diário.
 		if err != nil && !errors.Is(err, ErrSemChave) && !errors.Is(err, orcamento.ErrEsgotado) {
-			_ = r.Diario.Registrar(diario.Entrada{Atividade: atividade, Tipo: "modelo", Nome: rota,
+			_ = r.Diario.Registrar(diario.Entrada{Atividade: atividade, Tipo: "modelo", Nome: caminhoDe(destinoURL),
 				Decisao: "erro", Motivo: finalidade, Detalhe: err.Error()})
 		}
 	}()
@@ -409,9 +428,8 @@ func (r *Roteador) enviar(ctx context.Context, atividade int64, finalidade, rota
 	semRedirecionar := *cliente
 	semRedirecionar.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 
-	url := strings.TrimRight(r.Config().URL, "/") + rota
 	for tentativa := 1; ; tentativa++ {
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(corpo))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, destinoURL, bytes.NewReader(corpo))
 		if err != nil {
 			return err
 		}
@@ -461,4 +479,12 @@ func (r *Roteador) enviar(ctx context.Context, atividade int64, finalidade, rota
 		case <-time.After(espera << (tentativa - 1)):
 		}
 	}
+}
+
+// caminhoDe devolve só o caminho do endereço, para o diário.
+func caminhoDe(endereco string) string {
+	if u, err := url.Parse(endereco); err == nil {
+		return u.Path
+	}
+	return endereco
 }

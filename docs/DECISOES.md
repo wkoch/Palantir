@@ -87,3 +87,31 @@ A classificação é uma chamada sem ferramentas, com resposta restrita a quatro
 
 Pacotes, tipos e a API usam os termos da documentação. Convenções do Go e das bibliotecas permanecem como são.
 
+## Modelos, privacidade e escolhas do mantenedor
+
+Escolhas de 26 de novembro de 2026, depois da v0.1.0.
+
+### jev-router nos três níveis
+
+- **Escolhido:** `typesafe/jev-router`, a pedido do mantenedor, para que cada pedido vá ao modelo adequado e gaste menos. Substitui Claude Haiku, Sonnet e Opus fixos.
+- **Observado nos testes reais:** extração, triagem e redação foram para modelos baratos; conversa com ferramentas foi para o Claude Opus 5.5, que concentra o custo. O roteador não documenta como restringir os candidatos. Para fixar um modelo, informe o nome em `config.toml`.
+
+### Retenção zero de dados obrigatória
+
+- **Escolhido:** `zdr` e `data_collection = deny` em todo pedido, sem opção de desligar, e Vertex excluído por causa da "Safety Retention".
+
+### Jev para decisões fechadas
+
+- **Escolhido:** triagem e juiz de ações pelo `typesafe/jev-1.14`, cerca de US$ 0,00002 por decisão, com probabilidades que o código compara a limites. Resumos só do que é urgente ou pede resposta.
+- **Por quê:** é uma resposta de formato fechado, que um texto malicioso não consegue transformar em texto livre. Nos testes reais o juiz acertou os 5 casos (até 34% nos legítimos, 93% ou mais nos maliciosos).
+- **Ajuste vindo do teste:** o Jev classificou como lixo, com baixa confiança, uma fatura que vencia no dia. Por isso, abaixo de 70% de confiança decide o modelo de conversa.
+- **Descartado:** chamar a API da TypeSafe diretamente. Exigiria outra chave e não há SDK em Go; o OpenRouter oferece o mesmo modelo com ZDR e a mesma contabilidade.
+
+### O que continua como estava
+
+- **Sem licença:** o repositório é público, com todos os direitos reservados ao autor, por enquanto.
+- **E-mail:** só IMAP com senha; o provedor do mantenedor funciona assim.
+- **Importação:** cada documento recebe vetores, resumo e entidades.
+- **Triagem:** a classificação é gravada como etiqueta no servidor.
+- **Orçamento:** US$ 20 por mês e US$ 1 por atividade.
+
