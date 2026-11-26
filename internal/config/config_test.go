@@ -78,7 +78,7 @@ func TestCarregarCriaOPadrao(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Servidor.Endereco != "127.0.0.1:7700" || cfg.Ferramentas.Isolamento != "podman" ||
+	if cfg.Servidor.Endereco != EnderecoDoUsuario(os.Getuid()) || cfg.Ferramentas.Isolamento != "podman" ||
 		!cfg.IMAP.Etiquetar || cfg.Orcamento.MensalUSD != 20 || cfg.Modelos.Barato == "" {
 		t.Errorf("%+v", cfg)
 	}
