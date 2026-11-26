@@ -79,8 +79,9 @@ dizer "Pós-instalação"
 copiar "$PACOTE" /tmp/pacote.tar.gz
 vm 'cp /tmp/pacote.tar.gz ~/pacote.tar.gz'
 vm 'mkdir -p /tmp/p && tar -xzf /tmp/pacote.tar.gz -C /tmp/p'
-vm 'sudo /tmp/p/*/pos-instalacao.sh --usuario palantir --pacote /tmp/pacote.tar.gz --sem-reiniciar' ||
-	falhar "pos-instalacao.sh"
+# Como no guia de instalação: o script roda de dentro do pacote extraído, e a
+# conta vem do sudo.
+vm 'sudo /tmp/p/*/pos-instalacao.sh --sem-reiniciar' || falhar "pos-instalacao.sh"
 dizer "A pós-instalação pode ser repetida"
 vm 'sudo /tmp/p/*/pos-instalacao.sh --usuario palantir --pacote /tmp/pacote.tar.gz --sem-reiniciar >/tmp/segunda.log 2>&1' ||
 	{ vm 'tail -30 /tmp/segunda.log'; falhar "segunda execução"; }
