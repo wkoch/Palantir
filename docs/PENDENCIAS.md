@@ -13,7 +13,7 @@ Itens que dependem de uma decisão ou de uma prova sua. Em cada um há o comport
 ## Decisões
 
 ### Custo da conversa
-O jev-router tem mandado a conversa com ferramentas ao Claude Opus 5.5 (cerca de US$ 0,01 por resposta nos testes). Se pesar, fixe um modelo mais barato no nível `principal` ou peça um limite ao roteador.
+**Adiada em 26/11/2026 para depois do uso no HP.** O jev-router varia o modelo da conversa: nos testes, algumas execuções usaram o Claude Opus 5.5 e a última não usou, com custo entre cerca de US$ 0,005 e US$ 0,04 por pergunta. Acompanhe no **Painel**, por modelo e finalidade. Se pesar, dá para criar uma opção de modelo só para a conversa. Fixar o nível `principal` muda também o relatório e o estudo.
 
 ### Cópia sem cifra
 A cópia para disco ou pendrive não é cifrada. **Atual:** um aviso na documentação. Posso cifrá-la com uma senha, ao custo de não abrir o arquivo em outro programa.

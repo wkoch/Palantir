@@ -94,7 +94,7 @@ Escolhas de 26 de novembro de 2026, depois da v0.1.0.
 ### jev-router nos três níveis
 
 - **Escolhido:** `typesafe/jev-router`, a pedido do mantenedor, para que cada pedido vá ao modelo adequado e gaste menos. Substitui Claude Haiku, Sonnet e Opus fixos.
-- **Observado nos testes reais:** extração, triagem e redação foram para modelos baratos; conversa com ferramentas foi para o Claude Opus 5.5, que concentra o custo. O roteador não documenta como restringir os candidatos. Para fixar um modelo, informe o nome em `config.toml`.
+- **Observado nos testes reais:** extração, triagem e redação foram para modelos baratos. A conversa com ferramentas variou: em algumas execuções foi para o Claude Opus 5.5, que então concentrou o custo, e na última foi para outros modelos. O roteador não documenta como restringir os candidatos. Para fixar um modelo, informe o nome em `config.toml`; cada nível serve a várias atividades.
 
 ### Retenção zero de dados obrigatória
 
