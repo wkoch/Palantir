@@ -49,6 +49,7 @@ func (c cliente) pedir(metodo, rota, corpo string, cab ...string) (*http.Respons
 		c.t.Fatal(err)
 	}
 	req.Header.Set(servidor.Cabecalho, "1")
+	req.Header.Set("Authorization", "Bearer "+c.s.D.Chave)
 	for i := 0; i+1 < len(cab); i += 2 {
 		if cab[i] == "Host" {
 			req.Host = cab[i+1]
@@ -429,7 +430,7 @@ func TestEventosPorWebSocket(t *testing.T) {
 	ctx, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelar()
 	ws, _, err := websocket.Dial(ctx, "ws"+strings.TrimPrefix(c.url, "http")+"/api/eventos",
-		&websocket.DialOptions{HTTPHeader: http.Header{"Origin": {c.url}}})
+		&websocket.DialOptions{HTTPHeader: http.Header{"Origin": {c.url}}, Subprotocols: subprotocolos(c.s.D.Chave)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -478,7 +479,8 @@ func TestEscutarEServir(t *testing.T) {
 	if codigo, corpo := testes.Obter(t, "http://"+l.Addr().String()+"/api/saude"); codigo != 200 || !strings.Contains(corpo, `"v"`) {
 		t.Error(codigo, corpo)
 	}
-	ws, _, err := websocket.Dial(ctx, "ws://"+l.Addr().String()+"/api/eventos", nil)
+	ws, _, err := websocket.Dial(ctx, "ws://"+l.Addr().String()+"/api/eventos",
+		&websocket.DialOptions{Subprotocols: subprotocolos(s.D.Chave)})
 	if err != nil {
 		t.Fatal(err)
 	}

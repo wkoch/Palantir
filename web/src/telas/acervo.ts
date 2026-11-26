@@ -1,6 +1,6 @@
 import { html, nothing, type PropertyValues } from "lit";
-import { api, type Aviso } from "../api";
-import { Visao, formularioDeArquivos, quando, tamanho } from "../base";
+import { api, comBilhete, type Aviso } from "../api";
+import { Visao, formularioDeArquivos, quando, tamanho, baixar } from "../base";
 import type { Colecao, Documento, Entidade, Trecho } from "../tipos";
 
 interface Lista {
@@ -222,9 +222,9 @@ export class PlAcervo extends Visao<Lista> {
             : nothing}
           <h2>Manutenção</h2>
           <div class="linha-flex">
-            <a href="/api/exportar" download @click=${() => this.avisar("Exportação iniciada. No HP, o arquivo fica em ~/Palantir/Exportacoes.")}>
-              <button type="button">Exportar tudo</button>
-            </a>
+            <button type="button" @click=${() => this.tentar(() => baixar("/api/exportar"), "Preparando o arquivo; ele vai para os downloads.")}>
+              Baixar uma exportação
+            </button>
             <button type="button" ?disabled=${this.trabalhando} @click=${() => this.manutencao("/api/acervo/verificar")}>Verificar originais</button>
             <button type="button" ?disabled=${this.trabalhando} @click=${() => this.manutencao("/api/acervo/regenerar")}>Regenerar derivados</button>
           </div>
@@ -240,12 +240,24 @@ export class PlDocumento extends Visao<Aberto> {
   static override properties = { ...Visao.properties, numero: { type: Number }, original: { state: true } };
 
   declare numero: number;
-  /** O original fica numa moldura da própria tela: no kiosk não há outra janela. */
-  declare original: boolean;
+  /** Endereço temporário do original exibido numa moldura da própria tela. */
+  declare original: string;
 
   constructor() {
     super();
-    this.original = false;
+    this.original = "";
+  }
+
+  private async alternarOriginal() {
+    if (this.original) {
+      this.original = "";
+      return;
+    }
+    const numero = this.numero;
+    await this.tentar(async () => {
+      const endereco = await comBilhete(`/api/acervo/documentos/${numero}/original`);
+      if (numero === this.numero) this.original = endereco;
+    });
   }
 
   protected override async buscar() {
@@ -262,7 +274,7 @@ export class PlDocumento extends Visao<Aberto> {
 
   override willUpdate(mudou: PropertyValues<this>) {
     if (mudou.has("numero") && mudou.get("numero") !== undefined) {
-      this.original = false;
+      this.original = "";
       this.reiniciar();
     }
   }
@@ -297,10 +309,12 @@ export class PlDocumento extends Visao<Aberto> {
       ${x.resumo ? html`<p>${x.resumo}</p>` : nothing}
       <div class="linha-flex">
         ${this.exibivel(x.tipo)
-          ? html`<button type="button" aria-pressed=${this.original} @click=${() => (this.original = !this.original)}>
+          ? html`<button type="button" aria-pressed=${!!this.original} @click=${() => this.alternarOriginal()}>
               ${this.original ? "Fechar o original" : "Ver o original"}
             </button>`
-          : html`<a href="/api/acervo/documentos/${x.id}/original" download><button type="button">Baixar o original</button></a>`}
+          : html`<button type="button" @click=${() => this.tentar(() => baixar(`/api/acervo/documentos/${x.id}/original`))}>
+              Baixar o original
+            </button>`}
         <button type="button" @click=${() => this.tentar(() => api.enviar(`/api/acervo/documentos/${x.id}/reextrair`), "Extraindo novamente.")}>
           Extrair novamente
         </button>
@@ -314,7 +328,7 @@ export class PlDocumento extends Visao<Aberto> {
           : nothing}
       </div>
       ${this.original
-        ? html`<iframe class="original" title="Original de ${x.nome}" src="/api/acervo/documentos/${x.id}/original"></iframe>`
+        ? html`<iframe class="original" title="Original de ${x.nome}" src=${this.original}></iframe>`
         : nothing}
       ${d.entidades.length
         ? html`<h2>Entidades</h2><div class="linha-flex">${d.entidades.map((e) => html`<span class="selo" title=${e.tipo}>${e.valor}</span>`)}</div>`

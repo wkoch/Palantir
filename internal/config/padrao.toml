@@ -5,8 +5,9 @@
 # Segredos (chave do OpenRouter, senha do IMAP) nunca entram aqui.
 
 [servidor]
-# Só endereços locais são aceitos.
-endereco = "127.0.0.1:7700"
+# Só endereços locais são aceitos. Vazio: 127.0.0.1, na porta 7700 mais o
+# número do seu usuário a partir de 1000, para cada usuário ter o seu daemon.
+endereco = ""
 
 [modelos]
 url = "https://openrouter.ai/api/v1"
@@ -63,6 +64,6 @@ pasta_entrada = "~/Palantir/Entrada"
 intervalo_segundos = 10
 
 [segredos]
-# "arquivo": arquivo legível só por você, no disco cifrado com LUKS.
-# "secret-service": usa o secret-tool (exige um keyring destravado).
-armazenamento = "arquivo"
+# "secret-service": o keyring do Linux, destravado pela senha de login.
+# "arquivo": arquivo legível só por você, para sistemas sem keyring.
+armazenamento = "secret-service"

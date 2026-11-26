@@ -30,6 +30,12 @@ import (
 	"github.com/wkoch/Palantir/internal/simulador"
 )
 
+// Nenhum teste alcança o keyring de quem os roda, mesmo que uma configuração de
+// teste deixe de escolher o armazenamento em arquivo.
+func init() {
+	_ = os.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/dev/null/sem-keyring-nos-testes")
+}
+
 // Chave é a chave fictícia usada nos testes.
 const Chave = "chave-de-teste-ultrassecreta"
 
@@ -167,6 +173,8 @@ seguranca = "nenhum"
 [acervo]
 pasta_entrada = "` + dir + `/Entrada"
 intervalo_segundos = 3600
+[segredos]
+armazenamento = "arquivo"
 ` + o.Config
 	falhar(os.WriteFile(s.Caminhos.Arquivo(), []byte(cfg), 0o600))
 	cofre := segredos.Novo("arquivo", s.Caminhos.Segredos())

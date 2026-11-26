@@ -45,6 +45,9 @@ seguranca = "nenhum"
 [acervo]
 pasta_entrada = {{printf "%q" .Entrada}}
 intervalo_segundos = 2
+
+[segredos]
+armazenamento = "arquivo"
 `))
 
 // Executar prepara uma instalação de demonstração e mantém os serviços

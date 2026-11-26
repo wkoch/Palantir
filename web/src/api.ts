@@ -9,9 +9,31 @@ export class ErroDaApi extends Error {
   }
 }
 
+const guardada = "palantir.chave";
+
+/**
+ * Recebe a chave de acesso trazida pelo comando `palantird abrir` e a tira do
+ * endereço. O armazenamento local pertence só a esta origem, porta incluída.
+ */
+export function receberChave() {
+  const achado = /^#entrar=([\w-]+)$/.exec(location.hash);
+  if (!achado) return;
+  localStorage.setItem(guardada, achado[1]!);
+  history.replaceState(null, "", "#/");
+}
+
+export const chave = () => localStorage.getItem(guardada) ?? "";
+
+/** Endereço temporário para o que o navegador abre sozinho. */
+export async function comBilhete(caminho: string): Promise<string> {
+  const r = await pedir<{ endereco: string }>("POST", "/api/bilhetes", { caminho });
+  return r.endereco;
+}
+
 async function pedir<T>(metodo: string, rota: string, corpo?: unknown): Promise<T> {
   const opcoes: RequestInit = { method: metodo, headers: {} };
   const cabecalhos = opcoes.headers as Record<string, string>;
+  cabecalhos["Authorization"] = `Bearer ${chave()}`;
   if (metodo !== "GET") cabecalhos["X-Palantir"] = "1";
   if (corpo instanceof FormData) {
     opcoes.body = corpo;
@@ -26,6 +48,7 @@ async function pedir<T>(metodo: string, rota: string, corpo?: unknown): Promise<
     throw new ErroDaApi("O daemon não está respondendo.", 0);
   }
   const dados = await resposta.json().catch(() => null);
+  if (resposta.status === 401) publicar({ tipo: "sem_acesso" });
   if (!resposta.ok) {
     throw new ErroDaApi(dados?.erro ?? `Falha HTTP ${resposta.status}`, resposta.status);
   }
@@ -45,7 +68,7 @@ export const api = {
 };
 
 export interface Aviso {
-  tipo: "atividade" | "acervo" | "ajustes" | "tudo" | "conexao";
+  tipo: "atividade" | "acervo" | "ajustes" | "tudo" | "conexao" | "sem_acesso";
   atividade?: number;
 }
 
@@ -66,7 +89,7 @@ export let conectado = false;
 
 /** Mantém o WebSocket de avisos, reconectando sozinho. */
 export function conectar(espera = 500) {
-  const ws = new WebSocket(`ws://${location.host}/api/eventos`);
+  const ws = new WebSocket(`ws://${location.host}/api/eventos`, ["palantir", `chave.${chave()}`]);
   ws.onopen = () => {
     conectado = true;
     espera = 500;

@@ -115,3 +115,43 @@ Escolhas de 26 de novembro de 2026, depois da v0.1.0.
 - **Triagem:** a classificação é gravada como etiqueta no servidor.
 - **Orçamento:** US$ 20 por mês e US$ 1 por atividade.
 
+
+## Sessão comum com login no lugar do kiosk
+
+Escolhas do mantenedor em 26 de novembro de 2026. Substituem **Base Debian 13 com Cage e Chromium em kiosk**, **Sem sessão gráfica alternativa e sem modo tablet** (no que toca à sessão), **Unit de sessão em vez de login automático pelo getty** e **Segredos em arquivo por padrão**.
+
+### Debian 13 com o conjunto Noctalia
+
+- **Escolhido:** compositor Umbriel, shell Noctalia, tela de login Noctalia Greeter (greetd), gerenciador de arquivos Luciole e o que faltar para um notebook (NetworkManager, BlueZ, PipeWire, keyring).
+- **Procedência:** o repositório APT `pkg.noctalia.dev`, indicado pela documentação do Noctalia e mantido por Nick Hastings. A pós-instalação confere a soma do pacote da chave e a impressão digital antes de confiar nele.
+- **Motivo:** o mantenedor quer um computador que usa e ao qual volta, não um terminal travado numa página. O kiosk tinha sido apenas a sugestão inicial.
+
+### Usuários e senhas comuns do Linux
+
+- Cada usuário entra com a própria senha e tem o próprio Palantír: daemon, acervo, chaves e porta. Não há mais a conta especial `palantir`.
+- Ao fechar a tampa, o notebook suspende e volta na tela de bloqueio, que pede a senha do usuário.
+
+### A API local exige um segredo por usuário
+
+Com vários usuários e um navegador que abre qualquer site, a recusa por `Host` e `Origin` não basta. Cada daemon cria um segredo legível só pelo dono, entregue ao navegador pelo comando `palantird abrir` através de um arquivo privado, nunca pela linha de comando.
+
+### Segredos no keyring
+
+A senha de login destrava o keyring (Secret Service), que passa a ser o padrão. O arquivo 0600 continua disponível pela configuração.
+
+### Um endereço sozinho abre o site
+
+Digitar só um endereço navega até ele, como em qualquer navegador. Um pedido que cita um endereço continua indo à IA.
+
+### SearXNG próprio para a pesquisa da IA
+
+- Um contêiner SearXNG na própria máquina, acessível só por ela, com a imagem fixada pela soma.
+- Uma consulta é um dado que sai da máquina: depois que conteúdo externo entrou na atividade, uma consulta com palavras que você não escreveu pede confirmação.
+
+### Cópia para disco ou pendrive
+
+Em vez de cópia automática, uma ação na tela: escolher o disco, confirmar, e copiar originais, configurações e históricos. Os segredos não entram.
+
+### Tema escuro
+
+É o padrão.

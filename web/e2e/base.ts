@@ -49,6 +49,7 @@ export class Sistema {
   private simulador?: ChildProcess;
   url = "";
   web = "";
+  chave = "";
   pasta = "";
 
   async iniciar() {
@@ -68,6 +69,13 @@ export class Sistema {
   async ligar() {
     this.daemon = spawn(join(binarios, "palantird"), ["--dir", this.pasta]);
     await aguardar(this.daemon, /palantird pronto/, "palantird");
+    this.chave = (await readFile(join(this.pasta, "config", "acesso"), "utf8")).trim();
+  }
+
+  /** Fala com a API como o dono da instalação. */
+  api(rota: string, opcoes: RequestInit = {}) {
+    const cabecalhos = { "X-Palantir": "1", Authorization: `Bearer ${this.chave}`, ...(opcoes.headers as object) };
+    return fetch(`${this.url}${rota}`, { ...opcoes, headers: cabecalhos });
   }
 
   async desligar() {
@@ -90,15 +98,15 @@ export class Sistema {
 
   /** Importa os documentos de exemplo pela API e espera a extração. */
   async importarExemplos() {
-    const r = await fetch(`${this.url}/api/acervo/importar-pasta`, {
+    const r = await this.api("/api/acervo/importar-pasta", {
       method: "POST",
-      headers: { "X-Palantir": "1", "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ caminho: join(this.pasta, "exemplos") }),
     });
     expect(r.ok).toBeTruthy();
     await expect
       .poll(async () => {
-        const d = await (await fetch(`${this.url}/api/acervo/documentos`)).json();
+        const d = await (await this.api("/api/acervo/documentos")).json();
         return d.numeros.documentos === 3 && d.numeros.pendentes === 0 && d.numeros.vetores >= 3;
       })
       .toBe(true);
@@ -130,7 +138,7 @@ export const test = base.extend<{ sistema: Sistema; semErros: void }>({
       page.on("console", (m) => {
         // Respostas HTTP de erro são esperadas em alguns testes. A moldura do
         // original recusa a injeção do próprio Playwright, como deve.
-        const esperado = /Failed to load resource|WebSocket connection|Blocked script execution in '[^']+\/original'/;
+        const esperado = /Failed to load resource|WebSocket connection|Blocked script execution in '[^']+\/original(\?bilhete=[\w-]+)?'/;
         if (m.type() === "error" && !esperado.test(m.text())) erros.push(m.text());
       });
       page.on("request", (r) => {
@@ -148,9 +156,11 @@ export const test = base.extend<{ sistema: Sistema; semErros: void }>({
 
 export { expect };
 
-/** Abre a interface e espera o daemon responder. */
+/** Abre a interface, autorizada, e espera o daemon responder. */
 export async function abrir(page: Page, s: Sistema, rota = "") {
-  await page.goto(`${s.url}/${rota}`);
+  await page.goto(`${s.url}/#entrar=${s.chave}`);
+  await expect(page.locator('[data-teste="modelos"]')).toBeVisible();
+  if (rota) await page.goto(`${s.url}/${rota}`);
   await expect(page.locator('[data-teste="modelos"]')).toBeVisible();
 }
 

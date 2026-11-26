@@ -47,6 +47,8 @@ type Daemon struct {
 	Confirmacoes *confirmacoes.Fila
 	Eventos      *eventos.Central
 	Log          *slog.Logger
+	// Chave é o segredo que a interface apresenta à API.
+	Chave string
 
 	mu  sync.RWMutex
 	cfg config.Config
@@ -100,6 +102,9 @@ func Novo(ctx context.Context, caminhos config.Caminhos, o Opcoes) (*Daemon, err
 	d := &Daemon{Caminhos: caminhos, cfg: cfg, Eventos: eventos.Nova(), Log: o.Log}
 	if d.Log == nil {
 		d.Log = slog.Default()
+	}
+	if d.Chave, err = caminhos.LerChaveDeAcesso(); err != nil {
+		return nil, fmt.Errorf("chave de acesso: %w", err)
 	}
 	if d.Diario, err = diario.Abrir(caminhos.Diario()); err != nil {
 		return nil, fmt.Errorf("diário: %w", err)

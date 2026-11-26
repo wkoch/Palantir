@@ -33,6 +33,8 @@ type Servidor struct {
 	Versao string
 	// Interface são os arquivos compilados da interface web.
 	Interface fs.FS
+
+	bilhetes bilheteria
 }
 
 type tratador func(w http.ResponseWriter, r *http.Request) (any, error)
@@ -149,6 +151,7 @@ func (s *Servidor) Handler() http.Handler {
 	rota("POST /api/acervo/regenerar", s.regenerar)
 	rota("POST /api/acervo/verificar", s.verificar)
 	rota("GET /api/exportar", s.exportar)
+	rota("POST /api/bilhetes", s.emitirBilhete)
 
 	rota("GET /api/ajustes", s.ajustes)
 	rota("PUT /api/ajustes", s.gravarAjustes)
@@ -206,6 +209,11 @@ func (s *Servidor) proteger(proximo http.Handler) http.Handler {
 			recusar("falta o cabeçalho " + Cabecalho)
 			return
 		}
+		// A interface é pública; os dados, só para quem tem a chave.
+		if strings.HasPrefix(r.URL.Path, "/api/") && !s.autorizado(r) {
+			responder(w, http.StatusUnauthorized, map[string]string{"erro": "abra o Palantír pelo atalho do sistema"})
+			return
+		}
 		proximo.ServeHTTP(w, r)
 	})
 }
@@ -240,7 +248,7 @@ func (s *Servidor) arquivos() http.Handler {
 // eventos envia os avisos de mudança por WebSocket.
 func (s *Servidor) eventos(w http.ResponseWriter, r *http.Request) {
 	// A origem já foi conferida; Accept a confere de novo.
-	c, err := websocket.Accept(w, r, nil)
+	c, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{Subprotocolo}})
 	if err != nil {
 		return
 	}

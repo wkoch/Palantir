@@ -55,7 +55,7 @@ test("atalhos de teclado navegam entre as telas", async ({ page, sistema }) => {
   await abrir(page, sistema);
   await page.locator("body").press("?");
   const ajuda = page.getByRole("dialog", { name: "Atalhos de teclado" });
-  await expect(ajuda).toContainText("Ctrl+Alt+F2");
+  await expect(ajuda).toContainText("atalhos próprios");
   await ajuda.getByRole("button", { name: "Fechar" }).click();
   await expect(ajuda).toBeHidden();
   await page.getByRole("button", { name: "Atalhos de teclado" }).click();
@@ -103,9 +103,8 @@ test("a fila se atualiza sozinha quando algo muda no daemon", async ({ page, sis
   await abrir(page, sistema);
   await expect(page.getByText("Nenhuma atividade ainda")).toBeVisible();
   // Criada por fora da interface, como faria um trabalho em segundo plano.
-  const r = await fetch(`${sistema.url}/api/atividades`, {
+  const r = await sistema.api("/api/atividades", {
     method: "POST",
-    headers: { "X-Palantir": "1" },
     body: JSON.stringify({ tipo: "conversa", objetivo: "Criada em segundo plano" }),
   });
   expect(r.ok).toBeTruthy();
@@ -121,7 +120,7 @@ test("a interface recarrega quando a versão do daemon muda", async ({ page, sis
   await abrir(page, sistema);
   await page.evaluate(() => ((window as unknown as { marcada: boolean }).marcada = true));
   versao = "v2";
-  await fetch(`${sistema.url}/api/segredos/imap`, { method: "DELETE", headers: { "X-Palantir": "1" } });
+  await sistema.api("/api/segredos/imap", { method: "DELETE" });
   await expect.poll(() => page.evaluate(() => "marcada" in window).catch(() => true)).toBe(false);
 });
 

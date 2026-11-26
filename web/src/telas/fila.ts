@@ -1,6 +1,6 @@
 import { html, nothing } from "lit";
 import { api, type Aviso } from "../api";
-import { Visao, nomeDoEstado, nomeDoTipo, quando, usd } from "../base";
+import { Visao, navegar, nomeDoEstado, nomeDoTipo, quando, soEndereco, usd } from "../base";
 import type { Atividade, Documento, Estado } from "../tipos";
 
 const tipos = [
@@ -18,12 +18,15 @@ export class PlFila extends Visao<Estado> {
     arquivadas: { state: true },
     criando: { state: true },
     documentos: { state: true },
+    endereco: { state: true },
   };
 
   declare tipo: string;
   declare arquivadas: boolean;
   declare criando: boolean;
   declare documentos: Documento[];
+  /** Preenchido quando o texto digitado é só um endereço. */
+  declare endereco: string | undefined;
 
   constructor() {
     super();
@@ -62,8 +65,13 @@ export class PlFila extends Visao<Estado> {
     this.focarSeDer();
   }
 
+  private aceitaEndereco() {
+    return this.tipo === "conversa" || this.tipo === "relatorio";
+  }
+
   private async escolher(tipo: string) {
     this.tipo = tipo;
+    this.endereco = undefined;
     if (tipo === "estudo") {
       await this.tentar(async () => {
         const r = await api.obter<{ documentos: Documento[] }>("/api/acervo/documentos");
@@ -78,6 +86,13 @@ export class PlFila extends Visao<Estado> {
     e.preventDefault();
     const formulario = e.target as HTMLFormElement;
     const f = new FormData(formulario);
+    const endereco = this.aceitaEndereco() ? soEndereco(String(f.get("objetivo") ?? "")) : undefined;
+    if (endereco) {
+      formulario.reset();
+      this.endereco = undefined;
+      navegar(endereco);
+      return;
+    }
     const opcoes: Record<string, unknown> = {};
     if (this.tipo === "conversa") opcoes["forte"] = f.has("forte");
     if (this.tipo === "relatorio") opcoes["profundo"] = f.has("profundo");
@@ -125,8 +140,11 @@ export class PlFila extends Visao<Estado> {
                   <label for="titulo">Título</label>
                   <input id="titulo" name="titulo" placeholder="Concurso de analista" />`
               : nothing}
-            <label for="objetivo">${this.tipo === "estudo" ? "Conteúdo programático ou cargo" : "O que você quer fazer?"}</label>
-            <textarea id="objetivo" name="objetivo" rows="3" placeholder=${t.exemplo} @keydown=${this.teclas}></textarea>`}
+            <label for="objetivo">${this.tipo === "estudo" ? "Conteúdo programático ou cargo" : "O que você quer fazer? Ou um endereço para visitar"}</label>
+            <textarea id="objetivo" name="objetivo" rows="3" placeholder=${t.exemplo} @keydown=${this.teclas}
+              @input=${(e: Event) => {
+                this.endereco = this.aceitaEndereco() ? soEndereco((e.target as HTMLTextAreaElement).value) : undefined;
+              }}></textarea>`}
       <div class="linha-flex entre">
         <div>
           ${this.tipo === "conversa"
@@ -135,7 +153,7 @@ export class PlFila extends Visao<Estado> {
               ? html`<label class="linha"><input type="checkbox" name="profundo" /> Pesquisa profunda (modelo forte)</label>`
               : nothing}
         </div>
-        <button type="submit" class="primario" ?disabled=${this.criando}>Começar</button>
+        <button type="submit" class="primario" ?disabled=${this.criando}>${this.endereco ? "Abrir o site" : "Começar"}</button>
       </div>
     </form>`;
   }

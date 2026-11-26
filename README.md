@@ -30,7 +30,13 @@ Em outro terminal:
 bin/palantird --dir /tmp/palantir-demo
 ```
 
-Abra <http://127.0.0.1:7800> e importe a pasta `/tmp/palantir-demo/exemplos` na tela Acervo.
+Abra a interface, já autorizada:
+
+```bash
+bin/palantird --dir /tmp/palantir-demo abrir
+```
+
+Importe a pasta `/tmp/palantir-demo/exemplos` na tela Acervo.
 
 ## O que há na tela
 
@@ -53,6 +59,7 @@ No HP, pelo console:
 
 | Comando | Para que serve |
 | --- | --- |
+| `palantird abrir` | Abre o Palantír no navegador, já autorizado |
 | `palantird diagnostico` | Confere ferramentas, segredos, daemon e originais |
 | `palantird diagnostico --modelos` | Também faz chamadas reais (centavos) a cada nível de modelo |
 | `palantird segredo definir openrouter` | Guarda a chave sem mostrá-la (`imap` para a senha do e-mail) |

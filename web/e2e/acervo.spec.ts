@@ -101,7 +101,7 @@ test("buscar, organizar, conferir, regenerar e exportar", async ({ page, sistema
 
   const [baixado] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("button", { name: "Exportar tudo" }).click(),
+    page.getByRole("button", { name: "Baixar uma exportação" }).click(),
   ]);
   expect(baixado.suggestedFilename()).toMatch(/^palantir-\d{4}-\d{2}-\d{2}\.zip$/);
   const zip = await readFile(await baixado.path());

@@ -1,5 +1,5 @@
 import { LitElement } from "lit";
-import { ouvir, type Aviso } from "./api";
+import { comBilhete, ouvir, type Aviso } from "./api";
 
 /** Componente que desenha no DOM comum e usa a folha de estilo global. */
 export class Elemento extends LitElement {
@@ -148,4 +148,37 @@ export function formularioDeArquivos(arquivos: Iterable<File>) {
   const f = new FormData();
   for (const a of arquivos) f.append("arquivo", a, a.name);
   return f;
+}
+
+/** Baixa um arquivo da API, com um endereço de uso temporário. */
+export async function baixar(caminho: string) {
+  const a = document.createElement("a");
+  a.href = await comBilhete(caminho);
+  a.download = "";
+  a.click();
+}
+
+// Extensões de arquivo que parecem um domínio.
+const arquivos = /\.(pdf|txt|docx?|xlsx?|pptx?|od[tsp]|csv|zip|png|jpe?g|eml|html?|md)$/i;
+
+/**
+ * Devolve o endereço quando o texto é só um endereço web, e não um pedido.
+ * Apenas http e https.
+ */
+export function soEndereco(texto: string): string | undefined {
+  const t = texto.trim();
+  if (!t || /\s/.test(t)) return undefined;
+  const comEsquema = /^https?:\/\//i.test(t);
+  const semEsquema = /^(localhost(:\d+)?|([\p{L}\d-]+\.)+\p{L}{2,}(:\d+)?)([/?#].*)?$/iu.test(t);
+  if (!comEsquema && (!semEsquema || (!t.includes("/") && arquivos.test(t) && !/^www\./i.test(t)))) return undefined;
+  try {
+    return new URL(comEsquema ? t : `${t.startsWith("localhost") ? "http" : "https"}://${t}`).href;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Abre um site noutra aba; o Palantír continua nesta. */
+export function navegar(endereco: string) {
+  window.open(endereco, "_blank", "noopener,noreferrer");
 }

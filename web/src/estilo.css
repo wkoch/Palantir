@@ -1,5 +1,6 @@
-/* Tema escuro por padrão, claro conforme o sistema. */
+/* Tema escuro. */
 :root {
+  color-scheme: dark;
   --fundo: #101216;
   --painel: #171a21;
   --painel-2: #1f232c;
@@ -16,23 +17,6 @@
   --fonte: "Inter", "Noto Sans", system-ui, sans-serif;
   --mono: "JetBrains Mono", "Noto Sans Mono", ui-monospace, monospace;
 }
-@media (prefers-color-scheme: light) {
-  :root {
-    --fundo: #f6f4ef;
-    --painel: #ffffff;
-    --painel-2: #efece5;
-    --borda: #dcd7cc;
-    --texto: #1d1f24;
-    --suave: #5d636e;
-    --acento: #a85f06;
-    --acento-texto: #ffffff;
-    --perigo: #b3261e;
-    --ok: #1d7a41;
-    --info: #1a5fb4;
-    --externo: #eef2f9;
-  }
-}
-
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {

@@ -1,5 +1,5 @@
 import { html, nothing } from "lit";
-import { api, conectado, conectar, ouvir } from "./api";
+import { api, conectado, conectar, ouvir, receberChave } from "./api";
 import { Elemento, digitando, formularioDeArquivos } from "./base";
 import { resumoDaImportacao } from "./telas/acervo";
 import "./telas/ajustes";
@@ -37,6 +37,7 @@ class PlApp extends Elemento {
     arrastando: { state: true },
     ligado: { state: true },
     estado: { state: true },
+    semAcesso: { state: true },
   };
 
   declare rota: string;
@@ -44,6 +45,7 @@ class PlApp extends Elemento {
   declare arrastando: boolean;
   declare ligado: boolean;
   declare estado: Estado | undefined;
+  declare semAcesso: boolean;
 
   private proximaTorrada = 1;
   private versao = "";
@@ -55,11 +57,21 @@ class PlApp extends Elemento {
     this.torradas = [];
     this.arrastando = false;
     this.ligado = true;
+    this.semAcesso = false;
   }
 
   override connectedCallback() {
     super.connectedCallback();
+    // O atalho do sistema pode reaproveitar uma aba aberta ou abrir outra.
+    window.addEventListener("storage", () => {
+      if (this.semAcesso) location.reload();
+    });
     window.addEventListener("hashchange", () => {
+      if (location.hash.startsWith("#entrar=")) {
+        receberChave();
+        location.reload();
+        return;
+      }
       this.rota = location.hash;
       window.scrollTo(0, 0);
     });
@@ -75,6 +87,7 @@ class PlApp extends Elemento {
     });
     ouvir((a) => {
       if (a.tipo === "conexao") this.ligado = conectado;
+      else if (a.tipo === "sem_acesso") this.semAcesso = true;
       else void this.situacao();
     });
     conectar();
@@ -85,7 +98,7 @@ class PlApp extends Elemento {
     try {
       this.estado = await api.obter<Estado>("/api/estado");
       // Depois de uma atualização ou de voltar de versão, a interface antiga é
-      // recarregada: no kiosk não há botão de recarregar.
+      // recarregada.
       if (this.versao && this.versao !== this.estado.versao) location.reload();
       this.versao = this.estado.versao;
     } catch {
@@ -160,6 +173,13 @@ class PlApp extends Elemento {
   }
 
   override render() {
+    if (this.semAcesso) {
+      return html`<main class="conteudo">
+        <h1>Palantír</h1>
+        <p>Esta janela não tem acesso aos seus dados.</p>
+        <p>Abra o Palantír pelo atalho do sistema ou execute <code>palantird abrir</code> num terminal.</p>
+      </main>`;
+    }
     const area = this.rota.split("/")[1] ?? "";
     const link = (destino: string, nome: string, ativa: boolean) =>
       html`<a href=${destino} aria-current=${ativa ? "page" : "false"}>${nome}</a>`;
@@ -185,7 +205,7 @@ class PlApp extends Elemento {
       <dialog aria-label="Atalhos de teclado">
         <h2>Atalhos</h2>
         <dl class="atalhos">${atalhos.map(([t, d]) => html`<dt><kbd>${t}</kbd></dt><dd>${d}</dd>`)}</dl>
-        <p class="pequeno suave">A triagem e os cartões têm atalhos próprios, mostrados na tela. O console de emergência fica em <kbd>Ctrl+Alt+F2</kbd>.</p>
+        <p class="pequeno suave">A triagem e os cartões têm atalhos próprios, mostrados na tela.</p>
         <form method="dialog"><button type="submit">Fechar</button></form>
       </dialog>
       ${this.arrastando ? html`<div class="arrasto">Solte para importar no acervo</div>` : nothing}
@@ -195,4 +215,6 @@ class PlApp extends Elemento {
     `;
   }
 }
+// Antes de desenhar: a chave sai do endereço o quanto antes.
+receberChave();
 customElements.define("pl-app", PlApp);

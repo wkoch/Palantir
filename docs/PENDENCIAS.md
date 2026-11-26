@@ -12,15 +12,6 @@ Itens que dependem de uma decisão ou de uma prova sua. Em cada um há o comport
 
 ## Decisões
 
-### Onde guardar os segredos
-A arquitetura previa o keyring (Secret Service). Com login automático não há senha para destravá-lo. **Atual:** arquivo `segredos.json` com permissão 0600 no disco cifrado. A opção `armazenamento = "secret-service"` existe, mas exige um keyring destravado. Recomendo manter o arquivo.
-
-### Suspensão com a tampa fechada
-**Atual:** o padrão do Debian, que suspende e volta sem pedir senha. Um notebook roubado suspenso está com o disco aberto. Opções: desligar ao fechar a tampa (`HandleLidSwitch=poweroff`, seguro e simples, pois o estado persiste), ou uma tela de bloqueio ao voltar.
-
-### Acesso à API local
-A interface escuta só em `127.0.0.1` e recusa outros sites, mas qualquer programa em execução na máquina pode usar a API. No HP só rodam o Palantír e o que você abrir no tty2. Se isso mudar, a proteção seria um token entregue ao Chromium da sessão.
-
 ### Custo da conversa
 O jev-router tem mandado a conversa com ferramentas ao Claude Opus 5.5 (cerca de US$ 0,01 por resposta nos testes). Se pesar, fixe um modelo mais barato no nível `principal` ou peça um limite ao roteador.
 

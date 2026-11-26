@@ -33,7 +33,8 @@ func ferramenta(t *testing.T) string {
 func nova(t *testing.T, extra string) instalacao {
 	t.Helper()
 	i := instalacao{t: t, dir: testes.Pasta(t), endereco: testes.PortaFechada(t)}
-	cfg := "[servidor]\nendereco = \"" + i.endereco + "\"\n[acervo]\npasta_entrada = \"" + i.dir + "/Entrada\"\n" + extra
+	cfg := "[servidor]\nendereco = \"" + i.endereco + "\"\n[segredos]\narmazenamento = \"arquivo\"\n" +
+		"[acervo]\npasta_entrada = \"" + i.dir + "/Entrada\"\n" + extra
 	os.MkdirAll(filepath.Join(i.dir, "config"), 0o700)
 	if err := os.WriteFile(filepath.Join(i.dir, "config", "config.toml"), []byte(cfg), 0o600); err != nil {
 		t.Fatal(err)
@@ -194,6 +195,7 @@ func TestServir(t *testing.T) {
 	}
 	// Um segundo daemon sobre os mesmos dados é recusado.
 	i.quer(1, "já existe um palantird", "", "servir")
+	conferirAbrir(t, i, endereco)
 	// Os outros comandos continuam funcionando com o daemon ligado.
 	i.quer(0, "respondendo, versão 1", "", "diagnostico")
 	arq := filepath.Join(t.TempDir(), "b.txt")
@@ -218,6 +220,6 @@ func TestServirComPortaOcupada(t *testing.T) {
 	_ = s
 	i := nova(t, "")
 	l := strings.TrimPrefix(s.Web.URL, "http://")
-	os.WriteFile(filepath.Join(i.dir, "config", "config.toml"), []byte("[servidor]\nendereco = \""+l+"\"\n"), 0o600)
+	os.WriteFile(filepath.Join(i.dir, "config", "config.toml"), []byte("[servidor]\nendereco = \""+l+"\"\n[segredos]\narmazenamento = \"arquivo\"\n"), 0o600)
 	i.quer(1, "address already in use", "", "servir")
 }

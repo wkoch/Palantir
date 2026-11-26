@@ -2,6 +2,8 @@
 
 ## Não lançado
 
+- **Acesso:** a API exige uma chave por usuário, entregue pelo `palantird abrir`; segredos no keyring por padrão.
+- **Navegação:** um endereço sozinho abre o site; tema escuro.
 - **Modelos:** `typesafe/jev-router` nos três níveis, com o modelo e o provedor de cada chamada no diário.
 - **Privacidade:** todo pedido exige retenção zero de dados (ZDR), sem opção de desligar.
 - **Jev:** triagem uma mensagem por vez, resumos só do que pede atenção, juiz de ações por probabilidade.

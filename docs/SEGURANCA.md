@@ -18,7 +18,7 @@ O sistema guarda todos os documentos do usuário, tem acesso ao e-mail e envia c
 4. **Proveniência por mensagem.** O daemon marca a origem de cada texto: você, modelo, ferramenta ou documento. Texto de ferramenta ou documento é dado e aparece de forma distinta na tela.
 5. **Permissões por atividade.** A triagem de e-mail pode ler e etiquetar. Uma ferramenta fora da lista da atividade é bloqueada.
 6. **Confirmação para ações externas.** Enviar, apagar, publicar ou pagar entra numa fila de confirmação. A ação só acontece com o seu clique.
-7. **Segredos fora do modelo.** As chaves ficam num arquivo legível só pelo usuário, no disco cifrado, ou no keyring (Secret Service), e são lidas pelo daemon, que as entrega só à ferramenta que precisa delas. O modelo pede a ação, nunca vê a credencial. A interface grava e apaga segredos, mas não os lê.
+7. **Segredos fora do modelo.** As chaves ficam no keyring (Secret Service), destravado pela senha de login, ou num arquivo legível só pelo usuário, e são lidas pelo daemon, que as entrega só à ferramenta que precisa delas. O modelo pede a ação, nunca vê a credencial. A interface grava e apaga segredos, mas não os lê.
 8. **Diário de auditoria.** Cada chamada de modelo e de ferramenta é registrada com origem, decisão e custo, num arquivo legível só pelo usuário.
 9. **Orçamento** por atividade e mensal, com interrupção quando o limite é atingido.
 10. **Autoproteção.** Nenhuma ferramenta ou atividade pode alterar a configuração do daemon, as permissões ou o diário.
@@ -35,6 +35,17 @@ Todo pedido ao OpenRouter (conversa, vetores e decisões) leva as preferências 
 `zdr` restringe o roteamento a provedores que não guardam o conteúdo, e `data_collection` recusa os que o usam. O Vertex é excluído porque o OpenRouter pode contá-lo como ZDR mesmo quando ele retém conteúdo para análise de abuso ("Safety Retention"). Se nenhum provedor atender a isso, o pedido falha; ele nunca é refeito sem a exigência. Ative também **ZDR only** nas [configurações de privacidade](https://openrouter.ai/settings/privacy) da sua conta.
 
 Limites: o conteúdo passa pelo OpenRouter e pelo provedor para ser processado, e o OpenRouter anunciou uma triagem automática de material de abuso sexual infantil que vale também para pedidos ZDR. O diário registra o modelo e o provedor que atenderam cada chamada.
+
+## Acesso à API local
+
+O daemon escuta só em `127.0.0.1`, cada usuário na própria porta. A interface em si é pública, mas os dados e as ações exigem a chave de `~/.config/palantir/acesso` (permissão 0600).
+
+- `palantird abrir`, o atalho do sistema, grava um redirecionamento privado no diretório de execução e abre o navegador nele. A chave não passa pela linha de comando, visível a outros usuários.
+- A interface guarda a chave no armazenamento local do navegador, que pertence só àquela origem (porta incluída), e a envia num cabeçalho. Não há cookie, que valeria para qualquer porta.
+- O que o navegador abre sozinho (o original numa moldura, um download) usa um bilhete de cinco minutos para um único endereço.
+- Além da chave, o daemon continua recusando outro `Host`, outra origem e alterações sem o cabeçalho `X-Palantir`: o navegador agora abre qualquer site.
+
+Limite: um programa executado com o seu próprio usuário pode ler a chave, como pode ler os seus documentos.
 
 ## Regras de acesso a endereços
 
@@ -75,7 +86,6 @@ Limites conhecidos:
 
 - Um host liberado nos ajustes pode ser lido com qualquer caminho. Libere apenas sites que um atacante não controla.
 - Um resumo ou uma classificação pode ser distorcido por um texto malicioso. As defesas impedem ações, não opiniões erradas do modelo.
-- Qualquer programa local pode usar a API do daemon ([pendência](PENDENCIAS.md#acesso-à-api-local)).
 
 ## Avaliação do safeagents
 

@@ -1,6 +1,6 @@
 import { html, nothing, type PropertyValues } from "lit";
 import { api } from "../api";
-import { Elemento } from "../base";
+import { Elemento, navegar, soEndereco } from "../base";
 import { descrever, formatar } from "../texto";
 import type { Citacao, Conversa, Item } from "../tipos";
 import { quadro } from "./quadro";
@@ -8,8 +8,9 @@ import { quadro } from "./quadro";
 export function abrirCitacao(el: Elemento, c: Citacao) {
   if (c.documento) {
     location.hash = `#/acervo/documento/${c.documento}`;
+  } else if (c.url && soEndereco(c.url)) {
+    navegar(c.url);
   } else {
-    // Links externos não abrem no kiosk; o endereço é mostrado.
     el.avisar(descrever(c));
   }
 }
@@ -26,12 +27,14 @@ export class PlConversa extends Elemento {
     dados: { attribute: false },
     ocupada: { type: Boolean },
     enviando: { state: true },
+    endereco: { state: true },
   };
 
   declare atividade: number;
   declare dados: Conversa;
   declare ocupada: boolean;
   declare enviando: boolean;
+  declare endereco: string | undefined;
   private quantos = 0;
 
   private async enviar(e: SubmitEvent) {
@@ -40,6 +43,13 @@ export class PlConversa extends Elemento {
     const campo = formulario.elements.namedItem("texto") as HTMLTextAreaElement;
     const texto = campo.value.trim();
     if (!texto || this.enviando) return;
+    const endereco = soEndereco(texto);
+    if (endereco) {
+      campo.value = "";
+      this.endereco = undefined;
+      navegar(endereco);
+      return;
+    }
     const forte = (formulario.elements.namedItem("forte") as HTMLInputElement).checked;
     this.enviando = true;
     if (await this.tentar(() => api.agir(this.atividade, "mensagem", { texto, forte }))) campo.value = "";
@@ -98,10 +108,11 @@ export class PlConversa extends Elemento {
         ${this.ocupada ? html`<div class="nota"><i class="girando"></i> Pensando…</div>` : nothing}
       </div>
       <form class="compositor" @submit=${this.enviar} aria-label="Nova mensagem">
-        <textarea name="texto" rows="2" aria-label="Mensagem" placeholder="Escreva e tecle Enter" @keydown=${this.teclas}></textarea>
+        <textarea name="texto" rows="2" aria-label="Mensagem" placeholder="Escreva e tecle Enter" @keydown=${this.teclas}
+          @input=${(e: Event) => (this.endereco = soEndereco((e.target as HTMLTextAreaElement).value))}></textarea>
         <div class="linha-flex entre">
           <label class="linha"><input type="checkbox" name="forte" .checked=${this.dados.forte} /> Usar o modelo forte</label>
-          <button type="submit" class="primario" ?disabled=${this.enviando}>Enviar</button>
+          <button type="submit" class="primario" ?disabled=${this.enviando}>${this.endereco ? "Abrir o site" : "Enviar"}</button>
         </div>
       </form>
     `;

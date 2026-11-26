@@ -207,6 +207,9 @@ func Carregar(c Caminhos) (Config, error) {
 			return cfg, fmt.Errorf("%s: chave desconhecida %q", arquivo, desconhecidas[0].String())
 		}
 	}
+	if cfg.Servidor.Endereco == "" {
+		cfg.Servidor.Endereco = EnderecoDoUsuario(os.Getuid())
+	}
 	return cfg, cfg.Validar()
 }
 

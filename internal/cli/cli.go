@@ -4,13 +4,11 @@ package cli
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"strings"
 	"syscall"
@@ -41,6 +39,7 @@ const uso = `uso: palantird [--dir PASTA] <comando>
 comandos:
   servir                     inicia o daemon (padrão)
   versao                     mostra a versão
+  abrir                      abre o Palantír no navegador
   segredo definir NOME       guarda um segredo (openrouter ou imap), lido da entrada
   segredo remover NOME       apaga um segredo
   segredo listar             mostra quais segredos estão definidos
@@ -104,7 +103,7 @@ func executar(ctx context.Context, args []string, a Ambiente) error {
 		"verificar": verificar, "regenerar": regenerar, "diario": diario, "diagnostico": diagnostico,
 	}
 	f, ok := conhecidos[comando]
-	if !ok {
+	if !ok && comando != "abrir" {
 		return erroDeUso{"comando desconhecido: " + comando}
 	}
 	caminhos, err := config.CaminhosPadrao(*dir)
@@ -113,6 +112,10 @@ func executar(ctx context.Context, args []string, a Ambiente) error {
 	}
 	if err := caminhos.Criar(); err != nil {
 		return err
+	}
+	if comando == "abrir" {
+		// Não abre o banco: o daemon já está com ele.
+		return abrir(ctx, caminhos, args, a)
 	}
 	if comando == "servir" {
 		destravar, err := travar(caminhos)
@@ -164,6 +167,11 @@ func servir(ctx context.Context, d *daemon.Daemon, args []string, a Ambiente) er
 		return err
 	}
 	defer esperar()
+	if err := os.WriteFile(d.Caminhos.Endereco(), []byte(l.Addr().String()+"\n"), 0o600); err != nil {
+		l.Close()
+		return err
+	}
+	defer os.Remove(d.Caminhos.Endereco())
 	d.Log.Info("palantird pronto", "versao", a.Versao, "endereco", "http://"+l.Addr().String())
 	if a.Pronto != nil {
 		a.Pronto(l.Addr().String())
@@ -224,27 +232,13 @@ func segredo(ctx context.Context, d *daemon.Daemon, args []string, a Ambiente) e
 	return nil
 }
 
-// emExecucao informa se há um daemon atendendo o endereço configurado.
+// emExecucao informa se há um daemon atendendo.
 func emExecucao(ctx context.Context, d *daemon.Daemon) (versao string, ok bool) {
-	ctx, cancelar := context.WithTimeout(ctx, 2*time.Second)
-	defer cancelar()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+d.Config().Servidor.Endereco+"/api/saude", nil)
+	endereco, err := enderecoAtual(d.Caminhos)
 	if err != nil {
-		return "", false
+		endereco = d.Config().Servidor.Endereco
 	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", false
-	}
-	defer res.Body.Close()
-	var v struct {
-		OK     bool   `json:"ok"`
-		Versao string `json:"versao"`
-	}
-	if res.StatusCode != http.StatusOK || json.NewDecoder(res.Body).Decode(&v) != nil {
-		return "", false
-	}
-	return v.Versao, v.OK
+	return saude(ctx, endereco)
 }
 
 func importar(ctx context.Context, d *daemon.Daemon, args []string, a Ambiente) error {
